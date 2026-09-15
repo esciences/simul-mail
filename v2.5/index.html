@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>eSCIENCES — Défi Numérique</title>
+<style>
+  :root{
+    --ink: #2a2420;
+    --paper: #f2ead9;
+    --surface: #fbf6ec;
+    --surface-alt: #eee3cd;
+    --line: #c9bda0;
+
+    --green: #3c5943;
+    --green-dark: #2b4432;
+    --green-pale: #e2ece1;
+
+    --blue: #2b4a5e;
+    --blue-pale: #dfe7ec;
+
+    --orange: #b5602e;
+    --orange-dark: #7c3f1b;
+    --orange-pale: #f3e2d1;
+
+    --violet: #5b4a72;
+    --violet-pale: #e8e0ee;
+
+    --radius: 2px;
+  }
+  *{box-sizing:border-box;}
+  html{font-size:18px;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    display:flex;
+    flex-direction:column;
+    min-height:100%;
+    font-family: "Public Sans", Arial, Helvetica, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    line-height:1.55;
+  }
+  h1,h2,h3{font-family:inherit;}
+  *:focus-visible{outline:3px solid var(--blue); outline-offset:2px;}
+  img{max-width:100%;}
+
+  /* ================= HEADER / FOOTER ================= */
+  .site-header{
+    background: var(--ink);
+    color: var(--paper);
+    border-bottom:4px solid var(--green);
+    padding: 1.1rem 1.6rem;
+    flex-shrink:0;
+  }
+  .site-header .wrap{
+    max-width:76rem;
+    margin:0 auto;
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:0.4rem 1.2rem;
+  }
+  .site-header h1{
+    margin:0;
+    font-size:1.3rem;
+    font-weight:800;
+    letter-spacing:.03em;
+    text-transform:uppercase;
+  }
+  .site-header .tagline{
+    font-size:0.85rem;
+    color:#cfc6b8;
+    letter-spacing:.02em;
+  }
+
+  .site-footer{
+    background: var(--surface-alt);
+    border-top:3px solid var(--ink);
+    padding:1rem 1.6rem;
+    flex-shrink:0;
+  }
+  .site-footer .wrap{
+    max-width:76rem;
+    margin:0 auto;
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:0.3rem 1rem;
+    font-size:0.82rem;
+    color:#6b6255;
+  }
+
+  main{ flex:1 1 auto; display:flex; flex-direction:column; min-height:0; }
+
+  .screen{
+    display:none;
+    flex:1;
+    min-height:0;
+    align-items:flex-start;
+    justify-content:center;
+    padding: 2.2rem 1.2rem;
+    overflow-y:auto;
+  }
+  .screen.active{display:flex;}
+  .screen.app-screen.active{display:flex;padding:0;align-items:stretch;}
+
+  /* ---------- Cartes génériques ---------- */
+  .card{
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    box-shadow: 5px 5px 0 var(--line);
+    border-radius: var(--radius);
+    padding: 2.1rem;
+    width: 100%;
+    max-width: 32rem;
+  }
+
+  .eyebrow{
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    font-size:0.8rem;
+    font-weight:700;
+    color:var(--green-dark);
+    margin:0 0 0.4rem;
+  }
+  h1.title{font-size:1.45rem;font-weight:800;margin:0 0 0.4rem;}
+  p.subtitle{color:#5a5346;margin:0 0 1.5rem;font-size:1rem;line-height:1.6;}
+
+  label{
+    display:block;
+    font-size:1rem;
+    font-weight:700;
+    margin: 1.1rem 0 0.4rem;
+    color: var(--ink);
+  }
+  label.first{margin-top:0;}
+  input[type=text], input[type=password], input[type=email], textarea{
+    width:100%;
+    border:2px solid var(--ink);
+    border-radius: var(--radius);
+    padding:0.7rem 0.8rem;
+    font-size:1rem;
+    font-family:inherit;
+    background:var(--surface-alt);
+    color:var(--ink);
+  }
+  input:focus, textarea:focus{
+    outline:none;
+    border-color: var(--blue);
+    background:var(--surface);
+    box-shadow: 0 0 0 2px var(--blue-pale);
+  }
+  input.invalid, textarea.invalid{ border-color: var(--orange); background:var(--orange-pale); }
+  input.valid, textarea.valid{ border-color: var(--green); }
+
+  .email-group{
+    display:flex;
+    align-items:stretch;
+    border:2px solid var(--ink);
+    border-radius: var(--radius);
+    background:var(--surface-alt);
+    overflow:hidden;
+    flex-wrap:wrap;
+  }
+  .email-group.invalid{border-color:var(--orange);}
+  .email-group.valid{border-color:var(--green);}
+  .email-group input{
+    border:none;
+    background:transparent;
+    border-radius:0;
+    flex:1;
+    min-width:9rem;
+  }
+  .email-group input:focus{outline:none;box-shadow:none;}
+  .email-group .suffix{
+    display:flex;align-items:center;
+    padding:0 0.85rem;
+    background: var(--ink);
+    color: var(--paper);
+    font-weight:700;
+    font-size:0.95rem;
+    white-space:nowrap;
+    user-select:none;
+    border-left:2px solid var(--ink);
+  }
+
+  .password-group{ position:relative; }
+  .password-group input{ padding-right:3.1rem; }
+  .eye-btn{
+    position:absolute;
+    right:0.3rem;
+    top:50%;
+    transform:translateY(-50%);
+    width:2.3rem;
+    height:2.3rem;
+    border:2px solid transparent;
+    background:transparent;
+    border-radius: var(--radius);
+    font-size:1.15rem;
+    cursor:pointer;
+    color:var(--ink);
+  }
+  .eye-btn:hover{background:var(--surface-alt); border-color:var(--ink);}
+
+  .field-hint{
+    color: #6b6255;
+    font-size:0.88rem;
+    margin-top:0.4rem;
+    line-height:1.5;
+  }
+
+  /* ---------- Bulles de conseil carrées (jamais rouges) ---------- */
+  .tip-bubble{
+    display:none;
+    margin-top:0.7rem;
+    background: var(--orange-pale);
+    border:2px solid var(--ink);
+    border-left:7px solid var(--orange);
+    border-radius: var(--radius);
+    padding:0.85rem 1rem;
+  }
+  .tip-bubble.show{display:flex; gap:0.6rem; align-items:flex-start;}
+  .tip-bubble .tip-icon{font-size:1.2rem;flex-shrink:0;line-height:1;}
+  .tip-bubble .tip-text b{display:block;color:var(--orange-dark);font-size:0.95rem;margin-bottom:0.15rem;}
+  .tip-bubble .tip-text span{color:var(--ink);font-size:0.92rem;line-height:1.5;}
+
+  button{ font-family:inherit; cursor:pointer; }
+  .btn{
+    border:2px solid var(--ink);
+    border-radius: var(--radius);
+    padding:0.85rem 1.2rem;
+    font-size:1.05rem;
+    font-weight:700;
+    background: var(--green);
+    color:#fbf6ec;
+    width:100%;
+    min-height:3rem;
+    margin-top:1.5rem;
+    box-shadow: 4px 4px 0 var(--ink);
+  }
+  .btn:hover{ background: var(--green-dark); }
+  .btn:active{ box-shadow: 1px 1px 0 var(--ink); }
+  .btn.secondary{
+    background:var(--surface);
+    color:var(--ink);
+  }
+  .btn.secondary:hover{ background: var(--surface-alt); }
+  .btn.ghost{
+    background:transparent;
+    color: var(--blue);
+    border-color:transparent;
+    box-shadow:none;
+    font-weight:700;
+    font-size:0.95rem;
+    padding:0.5rem;
+    margin-top:0.8rem;
+    text-decoration:underline;
+  }
+  .btn.ghost:hover{ background:var(--blue-pale); }
+  .btn.small{ width:auto; padding:0.6rem 1.05rem; margin-top:0; font-size:0.95rem; min-height:2.6rem; box-shadow:3px 3px 0 var(--ink); }
+  .btn.small:active{ box-shadow: 1px 1px 0 var(--ink); }
+
+  /* ---------- Encarts pédagogiques ---------- */
+  .info-box{
+    display:flex;
+    gap:0.7rem;
+    align-items:flex-start;
+    background: var(--blue-pale);
+    border:2px solid var(--ink);
+    border-left:7px solid var(--blue);
+    border-radius: var(--radius);
+    padding:1rem 1.1rem;
+    margin-bottom:1rem;
+    font-size:0.95rem;
+    line-height:1.55;
+    color:#213847;
+  }
+  .info-box .info-icon{font-size:1.3rem;flex-shrink:0;}
+  .info-box.warn{ background:var(--orange-pale); color:var(--orange-dark); border-left-color:var(--orange); }
+  .info-box b{display:block;margin-bottom:0.2rem;}
+
+  .confirm-mark{
+    width:3.6rem;height:3.6rem;
+    background: var(--green);
+    color: #fbf6ec;
+    border:2px solid var(--ink);
+    display:flex;align-items:center;justify-content:center;
+    font-size:1.7rem;font-weight:800;
+    margin:0 auto 1.1rem;
+  }
+  .text-center{text-align:center;}
+  .email-pill{
+    display:inline-block;
+    background: var(--ink);
+    color: var(--paper);
+    font-weight:700;
+    padding:0.45rem 1rem;
+    border-radius: var(--radius);
+    margin: 0.3rem 0 1rem;
+    font-size:0.95rem;
+    word-break:break-all;
+  }
+
+  .recall-box{
+    display:none;
+    margin-top:1rem;
+    background: var(--violet-pale);
+    border: 2px solid var(--ink);
+    border-left:7px solid var(--violet);
+    border-radius: var(--radius);
+    padding:1rem 1.1rem;
+    font-size:0.95rem;
+    line-height:1.6;
+  }
+  .recall-box.show{display:block;}
+  .recall-box strong{color:var(--violet);}
+  .recall-box .warn-line{
+    margin-top:0.6rem;
+    font-weight:700;
+    color:var(--orange-dark);
+  }
+
+  /* ---------- Modales carrées ---------- */
+  .overlay{
+    display:none;
+    position:fixed;
+    inset:0;
+    background: rgba(30,26,22,0.55);
+    align-items:center;
+    justify-content:center;
+    padding:1.2rem;
+    z-index:50;
+  }
+  .overlay.show{display:flex;}
+  .modal{
+    background:var(--surface);
+    border:2px solid var(--ink);
+    box-shadow: 6px 6px 0 var(--ink);
+    border-radius: var(--radius);
+    width:100%;
+    max-width:26rem;
+    max-height:90vh;
+    overflow-y:auto;
+    padding:1.8rem;
+  }
+  .modal.wide{ max-width:42rem; padding:0; }
+  .modal-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:1.1rem 1.4rem;
+    border-bottom:2px solid var(--ink);
+    position:sticky;
+    top:0;
+    background:var(--surface);
+    z-index:2;
+  }
+  .modal-head h3{margin:0;font-size:1.15rem;}
+  .close-x{
+    background:none;border:2px solid transparent;font-size:1.3rem;color:var(--ink);
+    width:2.2rem;height:2.2rem;border-radius: var(--radius);
+  }
+  .close-x:hover{background:var(--surface-alt); border-color:var(--ink);}
+  .modal-body{padding:1.4rem;}
+  .modal-foot{
+    display:flex;
+    justify-content:flex-end;
+    gap:0.7rem;
+    flex-wrap:wrap;
+    padding:1rem 1.4rem;
+    border-top:2px solid var(--ink);
+    position:sticky;
+    bottom:0;
+    background:var(--surface);
+  }
+
+  .intercept-icon{font-size:2rem;text-align:center;margin-bottom:0.6rem;}
+  .intercept-actions{display:flex;gap:0.7rem;margin-top:1.3rem;flex-wrap:wrap;}
+  .intercept-actions .btn{margin-top:0;}
+
+  /* ================= APP (boîte mail) ================= */
+  .app-shell{ display:flex; flex:1; min-height:0; width:100%; }
+  .sidebar{
+    width:15.5rem;
+    flex-shrink:0;
+    background: var(--ink);
+    color:#e7e0d3;
+    padding: 1.5rem 1.1rem;
+    border-right:3px solid var(--green);
+    display:flex;
+    flex-direction:column;
+  }
+  .sidebar h2.app-title{ margin:0 0 1.5rem; font-size:1.05rem; font-weight:800; text-transform:uppercase; letter-spacing:.04em; color:#fbf6ec; }
+  .compose-btn{
+    background: var(--green);
+    color:#fbf6ec;
+    border:2px solid #fbf6ec;
+    border-radius: var(--radius);
+    padding:0.85rem;
+    font-weight:700;
+    font-size:1rem;
+    min-height:3rem;
+    margin-bottom:1.4rem;
+  }
+  .compose-btn:hover{ background:var(--green-dark); }
+  .nav-item{
+    display:flex;
+    align-items:center;
+    gap:0.6rem;
+    padding:0.7rem 0.7rem;
+    border-radius: var(--radius);
+    font-size:0.97rem;
+    font-weight:600;
+    color:#cbc2b3;
+    cursor:pointer;
+    margin-bottom:0.3rem;
+    background:none;
+    border:2px solid transparent;
+    width:100%;
+    text-align:left;
+  }
+  .nav-item:hover{background:#3a332c;}
+  .nav-item.active{background:#463d33; color:#fff; border-color:#5c5245;}
+  .sidebar-foot{
+    margin-top:auto;
+    padding-top:1rem;
+    border-top:2px solid #4a4136;
+    font-size:0.85rem;
+    color:#a89d8a;
+  }
+  .sidebar-foot .addr{color:#e7e0d3;font-weight:700;word-break:break-all;margin-bottom:0.5rem;}
+  .logout-link{
+    background:none;border:none;color:#cbb98f;font-size:0.85rem;font-weight:700;cursor:pointer;padding:0;text-decoration:underline;
+  }
+
+  .main{ flex:1; min-width:0; padding: 1.8rem 2.2rem; overflow-y:auto; }
+  .main-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom: 1.4rem; border-bottom:2px solid var(--line); padding-bottom:0.9rem; }
+  .main-header h2{margin:0;font-size:1.3rem;}
+  .main-header p{margin:0.15rem 0 0;color:#6b6255;font-size:0.92rem;}
+
+  .empty-state{
+    background:var(--surface);
+    border:2px dashed var(--line);
+    border-radius: var(--radius);
+    padding: 3.2rem 1.2rem;
+    text-align:center;
+    color: #6b6255;
+  }
+  .empty-state .emoji{font-size:2.4rem;margin-bottom:0.6rem;}
+  .empty-state b{color:var(--ink);}
+
+  .mail-list{ background:var(--surface); border:2px solid var(--ink); border-radius: var(--radius); overflow:hidden; }
+  .mail-row{ padding:1rem 1.2rem; border-bottom:2px solid var(--line); }
+  .mail-row:last-child{border-bottom:none;}
+  .mail-row .row1{ display:flex; justify-content:space-between; gap:0.8rem; font-weight:700; font-size:0.98rem; }
+  .mail-row .to{color:#6b6255;font-weight:600;font-size:0.85rem;margin-top:0.2rem;}
+  .mail-row .date{color:#6b6255;font-weight:500;font-size:0.82rem;white-space:nowrap;}
+  .mail-row .preview{color:#6b6255;font-size:0.88rem;margin-top:0.4rem;line-height:1.4;}
+
+  /* ---------- Rédaction ---------- */
+  .instruction-float{
+    background: var(--violet-pale);
+    border:2px solid var(--ink);
+    border-left:7px solid var(--violet);
+    border-radius: var(--radius);
+    padding:1rem 1.2rem;
+    font-size:0.98rem;
+    line-height:1.55;
+    color:#3c3150;
+    margin:1.4rem 1.4rem 0;
+  }
+  .instruction-float b{display:block;font-size:0.85rem;text-transform:uppercase;letter-spacing:.05em;color:var(--violet);margin-bottom:0.3rem;}
+
+  .field-label-row{ display:flex; align-items:center; gap:0.45rem; margin: 1.1rem 0 0.4rem; flex-wrap:wrap; }
+  .field-label-row label{margin:0;}
+  .field-two{ display:grid; grid-template-columns:1fr 1fr; gap:0 1rem; }
+  .help{
+    position:relative;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:1.4rem;height:1.4rem;
+    border-radius: var(--radius);
+    background: var(--surface-alt);
+    border:2px solid var(--ink);
+    color: var(--ink);
+    font-size:0.82rem;
+    font-weight:800;
+    cursor:help;
+    flex-shrink:0;
+  }
+  .help .tip{
+    display:none;
+    position:absolute;
+    bottom:1.8rem;
+    left:50%;
+    transform:translateX(-50%);
+    background:var(--ink);
+    color:#fbf6ec;
+    font-weight:500;
+    font-size:0.85rem;
+    line-height:1.45;
+    padding:0.6rem 0.75rem;
+    border-radius: var(--radius);
+    width:15rem;
+    z-index:5;
+    border:2px solid var(--ink);
+  }
+  .help:hover .tip, .help.tap .tip{display:block;}
+
+  .attach-row{ display:flex; align-items:center; gap:0.7rem; margin-top:0.5rem; flex-wrap:wrap; }
+  .attach-btn{
+    background:var(--surface);
+    border:2px dashed var(--ink);
+    border-radius: var(--radius);
+    padding:0.6rem 0.9rem;
+    font-size:0.92rem;
+    font-weight:700;
+    color:var(--ink);
+    min-height:2.6rem;
+  }
+  .attach-btn:hover{background:var(--surface-alt);}
+  .attach-info{font-size:0.88rem;color:#6b6255;}
+
+  textarea{min-height:9.5rem;resize:vertical;line-height:1.55;}
+
+  /* ---------- Rapport ---------- */
+  .report-summary{
+    display:flex;
+    align-items:center;
+    gap:1rem;
+    background: var(--blue-pale);
+    border:2px solid var(--ink);
+    border-radius: var(--radius);
+    padding:1.1rem 1.2rem;
+    margin-bottom:1.3rem;
+    flex-wrap:wrap;
+  }
+  .report-summary .score{ font-size:1.5rem; font-weight:800; color:var(--blue); flex-shrink:0; }
+  .report-summary .msg{font-size:0.98rem;color:var(--ink);line-height:1.5;}
+
+  .report-item{
+    display:flex;
+    gap:0.8rem;
+    padding:0.95rem 1.1rem;
+    border:2px solid var(--ink);
+    border-radius: var(--radius);
+    margin-bottom:0.7rem;
+  }
+  .report-item.ok{background:var(--green-pale); border-left:7px solid var(--green);}
+  .report-item.improve{background:var(--orange-pale); border-left:7px solid var(--orange);}
+  .report-item .icon{font-size:1.25rem;flex-shrink:0;}
+  .report-item .content b{display:block;font-size:0.98rem;margin-bottom:0.2rem;}
+  .report-item .content span{font-size:0.9rem;line-height:1.5;color:#5a5346;}
+
+  @media (max-width: 46rem){
+    .app-shell{flex-direction:column;}
+    .sidebar{width:100%;flex-direction:row;align-items:center;gap:0.8rem;padding:0.9rem 1rem;overflow-x:auto;border-right:none;border-bottom:3px solid var(--green);}
+    .sidebar h2.app-title{margin:0;white-space:nowrap;}
+    .compose-btn{margin-bottom:0;padding:0.7rem 1rem;white-space:nowrap;}
+    .nav-item{white-space:nowrap;margin-bottom:0;}
+    .sidebar-foot{display:none;}
+    .main{padding:1.2rem;}
+    .field-two{grid-template-columns:1fr;}
+    .instruction-float{margin:1rem;}
+    .site-header .wrap{flex-direction:column;align-items:flex-start;}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;}
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <h1>eSCIENCES — Défi Numérique</h1>
+    <div class="tagline">Simulateur de création d'adresse e-mail</div>
+  </div>
+</header>
+
+<main>
+
+<!-- ============ ÉCRAN 1 : CRÉATION DE COMPTE ============ -->
+<section class="screen active" id="screen-signup">
+  <div class="card">
+    <p class="eyebrow">Étape 1 sur 4</p>
+    <h1 class="title">Création de ma première adresse e-mail</h1>
+    <p class="subtitle">Remplis le formulaire pour créer ton adresse mail d'entrainement.</p>
+
+    <form id="form-signup" novalidate>
+      <label class="first" for="su-nom">Nom</label>
+      <input type="text" id="su-nom">
+
+      <label for="su-prenom">Prénom</label>
+      <input type="text" id="su-prenom">
+
+      <label for="su-local">Adresse mail</label>
+      <div class="email-group" id="email-group">
+        <input type="text" id="su-local" placeholder="prenom.nom" autocomplete="off">
+        <span class="suffix">@esciences.be</span>
+      </div>
+      <div class="tip-bubble" id="tip-local">
+        <div class="tip-icon">💡</div>
+        <div class="tip-text"></div>
+      </div>
+
+      <label for="su-pass">Mot de passe</label>
+      <div class="password-group">
+        <input type="password" id="su-pass" autocomplete="new-password">
+        <button type="button" class="eye-btn" data-target="su-pass" aria-label="Afficher le mot de passe">👁️</button>
+      </div>
+      <div class="field-hint">Il doit contenir au moins 8 caractères, une majuscule et un chiffre.</div>
+      <div class="tip-bubble" id="tip-pass">
+        <div class="tip-icon">💡</div>
+        <div class="tip-text"></div>
+      </div>
+
+      <label for="su-pass2">Répéter le mot de passe</label>
+      <div class="password-group">
+        <input type="password" id="su-pass2" autocomplete="new-password">
+        <button type="button" class="eye-btn" data-target="su-pass2" aria-label="Afficher le mot de passe">👁️</button>
+      </div>
+      <div class="tip-bubble" id="tip-pass2">
+        <div class="tip-icon">💡</div>
+        <div class="tip-text"></div>
+      </div>
+
+      <button type="submit" class="btn">Créer</button>
+    </form>
+  </div>
+</section>
+
+<!-- ============ ÉCRAN 2a : CONFIRMATION ============ -->
+<section class="screen" id="screen-confirm">
+  <div class="card">
+    <div class="confirm-mark">✓</div>
+    <h1 class="title text-center">Ton compte est créé !</h1>
+    <p class="subtitle text-center">Voici ta nouvelle adresse mail d'entrainement.</p>
+    <div class="text-center"><div class="email-pill" id="confirm-email"></div></div>
+
+    <div class="info-box">
+      <div class="info-icon">🛈</div>
+      <div><b>Ceci est un simulateur</b>Cette boite mail est fictive : elle sert uniquement à s'entrainer. Elle n'existe pas vraiment sur Internet et personne ne peut t'écrire ici.</div>
+    </div>
+    <div class="info-box warn">
+      <div class="info-icon">✍️</div>
+      <div><b>À faire tout de suite</b>Note ton adresse et ton mot de passe sur une feuille secrète, avant de continuer.</div>
+    </div>
+
+    <button class="btn" id="btn-go-login">Se connecter</button>
+  </div>
+</section>
+
+<!-- ============ ÉCRAN 2b : CONNEXION ============ -->
+<section class="screen" id="screen-login">
+  <div class="card">
+    <p class="eyebrow">Étape 2 sur 4</p>
+    <h1 class="title">Connexion</h1>
+    <p class="subtitle">Entre ton adresse mail complète et ton mot de passe.</p>
+
+    <form id="form-login" novalidate>
+      <label class="first" for="li-email">Adresse mail complète</label>
+      <input type="text" id="li-email" placeholder="prenom.nom@esciences.be" autocomplete="off">
+
+      <label for="li-pass">Mot de passe</label>
+      <div class="password-group">
+        <input type="password" id="li-pass" autocomplete="off">
+        <button type="button" class="eye-btn" data-target="li-pass" aria-label="Afficher le mot de passe">👁️</button>
+      </div>
+
+      <div class="tip-bubble" id="tip-login">
+        <div class="tip-icon">💡</div>
+        <div class="tip-text"></div>
+      </div>
+
+      <button type="submit" class="btn">Se connecter</button>
+    </form>
+    <button type="button" class="btn ghost" id="btn-forgot">Mot de passe oublié ?</button>
+    <div class="recall-box" id="recall-box">
+      <div>📧 Ton adresse : <strong id="recall-email"></strong></div>
+      <div>🔑 Ton mot de passe : <strong id="recall-pass"></strong></div>
+      <div class="warn-line">Ces informations sont secrètes : ne les donne à personne, à part tes parents ou ton enseignant·e.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ÉCRAN 3 : APPLICATION MAIL ============ -->
+<section class="screen app-screen" id="screen-app">
+  <div class="app-shell">
+    <aside class="sidebar">
+      <h2 class="app-title">MyMail</h2>
+      <button class="compose-btn" id="btn-compose">✏️ Nouveau message</button>
+      <button class="nav-item active" id="nav-inbox" data-target="inbox">📥 Boite de réception</button>
+      <button class="nav-item" id="nav-sent" data-target="sent">📤 Boite d'envoi</button>
+      <button class="nav-item" id="nav-drafts" data-target="drafts">📝 Brouillons</button>
+      <button class="nav-item" id="nav-spam" data-target="spam">🚫 Spam</button>
+      <div class="sidebar-foot">
+        <div class="addr" id="side-email"></div>
+        <button class="logout-link" id="btn-logout">Se déconnecter</button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <div id="view-inbox">
+        <div class="main-header">
+          <div><h2>Boite de réception</h2><p>Les messages que tu reçois s'affichent ici.</p></div>
+        </div>
+        <div class="empty-state"><div class="emoji">📭</div><b>Ta boite de réception est vide.</b><br>Pour l'instant, personne ne t'a écrit.</div>
+      </div>
+
+      <div id="view-sent" style="display:none;">
+        <div class="main-header">
+          <div><h2>Boite d'envoi</h2><p>Les messages que tu as envoyés s'affichent ici.</p></div>
+        </div>
+        <div id="sent-empty" class="empty-state"><div class="emoji">📤</div><b>Aucun message envoyé pour l'instant.</b><br>Clique sur « Nouveau message » pour rédiger ton premier courriel.</div>
+        <div class="mail-list" id="sent-list" style="display:none;"></div>
+      </div>
+
+      <div id="view-drafts" style="display:none;">
+        <div class="main-header">
+          <div><h2>Brouillons</h2><p>Les messages non terminés seraient ici.</p></div>
+        </div>
+        <div class="empty-state"><div class="emoji">📝</div><b>Aucun brouillon.</b><br>Tu n'as pas encore commencé de message sans l'envoyer.</div>
+      </div>
+
+      <div id="view-spam" style="display:none;">
+        <div class="main-header">
+          <div><h2>Spam</h2><p>Les messages indésirables seraient ici.</p></div>
+        </div>
+        <div class="empty-state"><div class="emoji">🚫</div><b>Aucun spam.</b><br>Ce dossier accueille les messages suspects ou publicitaires.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <span>eSCIENCES · Formation numérique</span>
+    <span>Simulateur pédagogique — aucune donnée n'est envoyée sur Internet</span>
+  </div>
+</footer>
+
+<!-- ============ MODALE : INTERCEPTION AVANT CONNEXION ============ -->
+<div class="overlay" id="overlay-intercept">
+  <div class="modal">
+    <div class="intercept-icon">✍️</div>
+    <h3 class="text-center" style="margin:0 0 0.6rem;font-size:1.15rem;">As-tu bien noté ton adresse et ton mot de passe sur une feuille avant de continuer ?</h3>
+    <p class="subtitle text-center" style="margin-bottom:0;">Sans cette feuille, tu risques de ne plus pouvoir te connecter la prochaine fois.</p>
+    <div class="intercept-actions">
+      <button class="btn secondary" id="btn-intercept-no">Non, je le fais</button>
+      <button class="btn" id="btn-intercept-yes">Oui, c'est fait !</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODALE : RÉDACTION ============ -->
+<div class="overlay" id="overlay-compose">
+  <div class="modal wide">
+    <div class="modal-head">
+      <h3>Nouveau message</h3>
+      <button class="close-x" id="btn-close-compose">×</button>
+    </div>
+
+    <div class="instruction-float">
+      <b>📌 Consigne</b>
+      Rédige un courriel formel à ton professeur pour l'informer de ton absence au laboratoire de demain.
+    </div>
+
+    <div class="modal-body">
+      <form id="form-compose" novalidate>
+        <div class="field-label-row">
+          <label>Expéditeur</label>
+          <span class="help" tabindex="0">?<span class="tip">L'expéditeur, c'est toi : la personne qui envoie le message.</span></span>
+        </div>
+        <input type="text" id="cp-from" disabled>
+
+        <div class="field-label-row">
+          <label>Destinataire</label>
+          <span class="help" tabindex="0">?<span class="tip">Le destinataire reçoit le message directement. C'est la personne à qui tu écris.</span></span>
+        </div>
+        <input type="text" id="cp-to" placeholder="ex : m.dupont@esciences.be" autocomplete="off">
+
+        <div class="field-two">
+          <div>
+            <div class="field-label-row">
+              <label>Cc</label>
+              <span class="help" tabindex="0">?<span class="tip">Cc veut dire « copie carbone ». Les personnes en Cc reçoivent aussi le message, et tout le monde peut voir leur adresse.</span></span>
+            </div>
+            <input type="text" id="cp-cc" placeholder="facultatif" autocomplete="off">
+          </div>
+          <div>
+            <div class="field-label-row">
+              <label>Cci</label>
+              <span class="help" tabindex="0">?<span class="tip">Cci veut dire « copie carbone invisible ». Ces personnes reçoivent le message, mais leur adresse reste cachée pour les autres.</span></span>
+            </div>
+            <input type="text" id="cp-cci" placeholder="facultatif" autocomplete="off">
+          </div>
+        </div>
+
+        <div class="field-label-row">
+          <label>Objet</label>
+          <span class="help" tabindex="0">?<span class="tip">L'objet résume le sujet du message en quelques mots seulement.</span></span>
+        </div>
+        <input type="text" id="cp-subject" placeholder="ex : Absence au laboratoire de demain" autocomplete="off">
+
+        <div class="attach-row">
+          <button type="button" class="attach-btn" id="btn-attach">📎 Pièce jointe</button>
+          <span class="help" tabindex="0">?<span class="tip">Une pièce jointe est un fichier (photo, document...) ajouté au message.</span></span>
+          <span class="attach-info" id="attach-info">Aucun fichier joint</span>
+        </div>
+
+        <div class="field-label-row">
+          <label>Corps du message</label>
+          <span class="help" tabindex="0">?<span class="tip">Le corps du message est le texte principal : c'est ici que tu écris ce que tu as à dire.</span></span>
+        </div>
+        <textarea id="cp-body" placeholder="Écris ton message ici..."></textarea>
+      </form>
+    </div>
+    <div class="modal-foot">
+      <button class="btn secondary small" id="btn-cancel-compose">Annuler</button>
+      <button class="btn small" id="btn-send">Envoyer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODALE : RAPPORT D'ANALYSE ============ -->
+<div class="overlay" id="overlay-report">
+  <div class="modal wide">
+    <div class="modal-head">
+      <h3>Rapport de ton courriel</h3>
+      <button class="close-x" id="btn-close-report">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="report-summary">
+        <div class="score" id="report-score"></div>
+        <div class="msg" id="report-message"></div>
+      </div>
+      <div id="report-items"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn small" id="btn-back-inbox">Retour à la boite de réception</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var account = null;
+  var sentMessages = [];
+  var attached = false;
+
+  function $(id){ return document.getElementById(id); }
+  function showScreen(id){
+    document.querySelectorAll(".screen").forEach(function(s){ s.classList.remove("active"); });
+    $(id).classList.add("active");
+  }
+
+  // ---------------------------------------------------------------
+  // Afficher / masquer les mots de passe
+  // ---------------------------------------------------------------
+  document.querySelectorAll(".eye-btn").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var input = $(btn.getAttribute("data-target"));
+      var isHidden = input.type === "password";
+      input.type = isHidden ? "text" : "password";
+      btn.textContent = isHidden ? "🙈" : "👁️";
+      btn.setAttribute("aria-label", isHidden ? "Masquer le mot de passe" : "Afficher le mot de passe");
+    });
+  });
+
+  // ---------------------------------------------------------------
+  // ÉTAPE 1 : Création du compte (validation au clic uniquement)
+  // ---------------------------------------------------------------
+  var localInput = $("su-local");
+  var passInput  = $("su-pass");
+  var pass2Input = $("su-pass2");
+  var emailGroup = $("email-group");
+  var LOCAL_RE = /^[A-Za-z0-9._-]+$/;
+
+  function showTip(bubbleId, field, message){
+    var bubble = $(bubbleId);
+    bubble.querySelector(".tip-text").innerHTML = message;
+    bubble.classList.add("show");
+    if(field) field.classList.add("invalid");
+  }
+  function hideTip(bubbleId, field){
+    $(bubbleId).classList.remove("show");
+    if(field) { field.classList.remove("invalid"); field.classList.add("valid"); }
+  }
+
+  function checkLocal(){
+    var val = localInput.value.trim();
+    if(val === ""){
+      showTip("tip-local", emailGroup, "<b>Un petit oubli</b>Le champ adresse mail est vide. Choisis une partie de nom, par exemple : prenom.nom");
+      return false;
+    }
+    if(!LOCAL_RE.test(val)){
+      showTip("tip-local", emailGroup,
+        "<b>Presque !</b>Une adresse mail ne peut pas contenir d'accents, d'espaces ou de caractères spéciaux (é, à, %, !...). " +
+        "Utilise uniquement des lettres sans accent, des chiffres, des points ( . ) ou des tirets ( - _ ). Par exemple : prenom.nom");
+      return false;
+    }
+    hideTip("tip-local", emailGroup);
+    return true;
+  }
+
+  function checkPass(){
+    var val = passInput.value;
+    if(val === ""){
+      showTip("tip-pass", passInput, "<b>Un petit oubli</b>Le champ mot de passe est vide.");
+      return false;
+    }
+    var missing = [];
+    if(val.length < 8) missing.push("au moins 8 caractères");
+    if(!/[A-Z]/.test(val)) missing.push("une majuscule");
+    if(!/[0-9]/.test(val)) missing.push("un chiffre");
+    if(missing.length > 0){
+      showTip("tip-pass", passInput,
+        "<b>Ton mot de passe a besoin d'un peu plus de force</b>Ajoute " + missing.join(", ") + ". Par exemple : Robot42fusee");
+      return false;
+    }
+    hideTip("tip-pass", passInput);
+    return true;
+  }
+
+  function checkPass2(){
+    var val = pass2Input.value;
+    if(val === ""){
+      showTip("tip-pass2", pass2Input, "<b>Un petit oubli</b>Répète ton mot de passe dans ce champ.");
+      return false;
+    }
+    if(val !== passInput.value){
+      showTip("tip-pass2", pass2Input, "<b>Ça ne correspond pas encore</b>Les deux mots de passe sont différents. Vérifie que tu as tapé exactement la même chose dans les deux champs.");
+      return false;
+    }
+    hideTip("tip-pass2", pass2Input);
+    return true;
+  }
+
+  $("form-signup").addEventListener("submit", function(e){
+    e.preventDefault();
+    var okLocal = checkLocal();
+    var okPass = checkPass();
+    var okPass2 = checkPass2();
+    var nom = $("su-nom").value.trim();
+    var prenom = $("su-prenom").value.trim();
+
+    if(!okLocal || !okPass || !okPass2 || nom === "" || prenom === ""){
+      var firstInvalid = document.querySelector(".tip-bubble.show");
+      if(firstInvalid) firstInvalid.scrollIntoView({behavior:"smooth", block:"center"});
+      return;
+    }
+
+    var local = localInput.value.trim().toLowerCase();
+    account = {
+      nom: nom,
+      prenom: prenom,
+      local: local,
+      email: local + "@esciences.be",
+      password: passInput.value
+    };
+
+    $("confirm-email").textContent = account.email;
+    showScreen("screen-confirm");
+  });
+
+  // ---------------------------------------------------------------
+  // ÉTAPE 2 : Interception + connexion
+  // ---------------------------------------------------------------
+  $("btn-go-login").addEventListener("click", function(){
+    $("overlay-intercept").classList.add("show");
+  });
+  $("btn-intercept-no").addEventListener("click", function(){
+    $("overlay-intercept").classList.remove("show");
+  });
+  $("btn-intercept-yes").addEventListener("click", function(){
+    $("overlay-intercept").classList.remove("show");
+    $("li-email").value = "";
+    $("li-pass").value = "";
+    hideTip("tip-login", null);
+    $("recall-box").classList.remove("show");
+    showScreen("screen-login");
+  });
+
+  $("form-login").addEventListener("submit", function(e){
+    e.preventDefault();
+    var email = $("li-email").value.trim().toLowerCase();
+    var pass = $("li-pass").value;
+
+    if(account && email === account.email && pass === account.password){
+      hideTip("tip-login", null);
+      $("tip-login").classList.remove("show");
+      enterApp();
+    } else {
+      showTip("tip-login", null, "<b>Ça ne correspond pas</b>Vérifie ton adresse complète (avec @esciences.be) et ton mot de passe, en respectant les majuscules.");
+    }
+  });
+
+  $("btn-forgot").addEventListener("click", function(){
+    if(!account) return;
+    $("recall-email").textContent = account.email;
+    $("recall-pass").textContent = account.password;
+    $("recall-box").classList.add("show");
+  });
+
+  $("btn-logout").addEventListener("click", function(){
+    showScreen("screen-login");
+    $("li-email").value = "";
+    $("li-pass").value = "";
+  });
+
+  // ---------------------------------------------------------------
+  // ÉTAPE 3 : Boite mail
+  // ---------------------------------------------------------------
+  function enterApp(){
+    $("side-email").textContent = account.email;
+    $("cp-from").value = account.email;
+    switchView("inbox");
+    showScreen("screen-app");
+  }
+
+  var views = ["inbox","sent","drafts","spam"];
+  function switchView(target){
+    views.forEach(function(v){
+      $("nav-" + v).classList.toggle("active", v === target);
+      $("view-" + v).style.display = v === target ? "block" : "none";
+    });
+  }
+  views.forEach(function(v){
+    $("nav-" + v).addEventListener("click", function(){ switchView(v); });
+  });
+
+  function renderSent(){
+    var listEl = $("sent-list");
+    var emptyEl = $("sent-empty");
+    if(sentMessages.length === 0){
+      listEl.style.display = "none";
+      emptyEl.style.display = "block";
+      return;
+    }
+    emptyEl.style.display = "none";
+    listEl.style.display = "block";
+    listEl.innerHTML = "";
+    sentMessages.slice().reverse().forEach(function(m){
+      var row = document.createElement("div");
+      row.className = "mail-row";
+      row.innerHTML =
+        '<div class="row1"><span>' + escapeHtml(m.subject || "(sans objet)") + '</span>' +
+        '<span class="date">' + m.date + '</span></div>' +
+        '<div class="to">À : ' + escapeHtml(m.to) + '</div>' +
+        '<div class="preview">' + escapeHtml(m.body.slice(0,120)) + (m.body.length>120?"…":"") + '</div>';
+      listEl.appendChild(row);
+    });
+  }
+
+  function escapeHtml(str){
+    return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  // ---------------------------------------------------------------
+  // Modale de rédaction
+  // ---------------------------------------------------------------
+  function openCompose(){
+    $("cp-to").value = "";
+    $("cp-cc").value = "";
+    $("cp-cci").value = "";
+    $("cp-subject").value = "";
+    $("cp-body").value = "";
+    attached = false;
+    $("attach-info").textContent = "Aucun fichier joint";
+    $("overlay-compose").classList.add("show");
+  }
+  function closeCompose(){ $("overlay-compose").classList.remove("show"); }
+
+  $("btn-compose").addEventListener("click", openCompose);
+  $("btn-close-compose").addEventListener("click", closeCompose);
+  $("btn-cancel-compose").addEventListener("click", closeCompose);
+
+  $("btn-attach").addEventListener("click", function(){
+    attached = !attached;
+    $("attach-info").textContent = attached ? "📎 justificatif.pdf" : "Aucun fichier joint";
+  });
+
+  document.querySelectorAll(".help").forEach(function(h){
+    h.addEventListener("click", function(e){
+      e.stopPropagation();
+      var wasOpen = h.classList.contains("tap");
+      document.querySelectorAll(".help.tap").forEach(function(o){ o.classList.remove("tap"); });
+      if(!wasOpen) h.classList.add("tap");
+    });
+  });
+  document.addEventListener("click", function(){
+    document.querySelectorAll(".help.tap").forEach(function(o){ o.classList.remove("tap"); });
+  });
+
+  // ---------------------------------------------------------------
+  // ÉTAPE 4 : Envoi + rapport
+  // ---------------------------------------------------------------
+  $("btn-send").addEventListener("click", function(){
+    var to = $("cp-to").value.trim();
+    var subject = $("cp-subject").value.trim();
+    var body = $("cp-body").value;
+
+    var report = analyzeEmail(to, subject, body);
+
+    sentMessages.push({
+      to: to, subject: subject, body: body,
+      date: new Date().toLocaleString("fr-BE", {day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})
+    });
+    renderSent();
+
+    closeCompose();
+    renderReport(report);
+    $("overlay-report").classList.add("show");
+  });
+
+  function analyzeEmail(to, subject, body){
+    var items = [];
+
+    var toTrim = to.trim();
+    if(toTrim === ""){
+      items.push({ok:false, title:"Destinataire manquant",
+        detail:"Le champ destinataire est vide. Un message a toujours besoin d'un destinataire pour savoir à qui il est envoyé."});
+    } else if(toTrim.indexOf("@") === -1){
+      items.push({ok:false, title:"Adresse du destinataire à corriger",
+        detail:"L'adresse « " + toTrim + " » ne contient pas de @. Une adresse mail valide ressemble à quelquechose@quelquepart, par exemple : m.dupont@esciences.be"});
+    } else {
+      items.push({ok:true, title:"Adresse du destinataire valide",
+        detail:"L'adresse contient bien un @, elle a la bonne forme."});
+    }
+
+    var subj = subject.trim();
+    if(subj === ""){
+      items.push({ok:false, title:"Objet absent",
+        detail:"Le champ objet est vide. Ajoute quelques mots qui résument le sujet, par exemple : « Absence au laboratoire »."});
+    } else if(subj.length > 60 || (body.trim().length > 0 && subj.length >= body.trim().length * 0.6)){
+      items.push({ok:false, title:"Objet à raccourcir",
+        detail:"Ton objet est trop long ou reprend tout le message. L'objet doit rester court : c'est un titre, pas un résumé complet."});
+    } else {
+      items.push({ok:true, title:"Objet présent et synthétique",
+        detail:"Ton objet résume bien le sujet en peu de mots."});
+    }
+
+    var bodyLines = body.split("\n").map(function(l){return l.trim();}).filter(function(l){return l !== "";});
+    var firstLine = bodyLines.length > 0 ? bodyLines[0] : "";
+    var formalRe = /^(bonjour|madame|monsieur|cher|ch[eè]re|chers|ch[eè]res|salut|coucou)/i;
+    if(formalRe.test(firstLine)){
+      items.push({ok:true, title:"Formule d'appel présente",
+        detail:"Ton message commence par une formule de politesse. C'est ce qu'il faut faire."});
+    } else {
+      items.push({ok:false, title:"Formule d'appel manquante",
+        detail:"Ton message ne commence pas par une formule de politesse. Ajoute par exemple « Bonjour, » ou « Madame, Monsieur, » au tout début."});
+    }
+
+    var lastLine = bodyLines.length > 0 ? bodyLines[bodyLines.length - 1] : "";
+    var lastLower = lastLine.toLowerCase();
+    var hasSignature = lastLine !== "" && account && (
+      lastLower.indexOf(account.prenom.toLowerCase()) !== -1 ||
+      lastLower.indexOf(account.nom.toLowerCase()) !== -1
+    );
+    if(hasSignature){
+      items.push({ok:true, title:"Signature présente",
+        detail:"Ton message se termine par ton prénom : le destinataire sait qui lui écrit."});
+    } else {
+      items.push({ok:false, title:"Signature manquante",
+        detail:"Ton message ne se termine pas par ton prénom. Termine toujours un courriel en indiquant qui tu es, par exemple : « ... Merci d'avance, " + (account ? account.prenom : "Prénom") + " »."});
+    }
+
+    return items;
+  }
+
+  function renderReport(items){
+    var okCount = items.filter(function(i){return i.ok;}).length;
+    var total = items.length;
+    $("report-score").textContent = okCount + "/" + total;
+
+    var msg;
+    if(okCount === total){
+      msg = "Bravo, ton courriel respecte toutes les règles d'un message formel !";
+    } else if(okCount >= total/2){
+      msg = "Bon travail ! Il reste quelques points à améliorer ci-dessous.";
+    } else {
+      msg = "Ton courriel a besoin de quelques corrections. Regarde les explications ci-dessous pour progresser.";
+    }
+    $("report-message").textContent = msg;
+
+    var container = $("report-items");
+    container.innerHTML = "";
+    items.forEach(function(item){
+      var div = document.createElement("div");
+      div.className = "report-item " + (item.ok ? "ok" : "improve");
+      div.innerHTML =
+        '<div class="icon">' + (item.ok ? "✅" : "🔶") + '</div>' +
+        '<div class="content"><b>' + escapeHtml(item.title) + '</b><span>' + escapeHtml(item.detail) + '</span></div>';
+      container.appendChild(div);
+    });
+  }
+
+  $("btn-close-report").addEventListener("click", function(){
+    $("overlay-report").classList.remove("show");
+  });
+  $("btn-back-inbox").addEventListener("click", function(){
+    $("overlay-report").classList.remove("show");
+    switchView("sent");
+  });
+
+})();
+</script>
+</body>
+</html>
