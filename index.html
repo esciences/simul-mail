@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>eSCIENCES Mail — Simulation</title>
+<style>
+  :root{
+    --blue: #2f6fed;
+    --blue-dark: #1f4fb8;
+    --blue-light: #eaf1ff;
+    --purple: #7c5cff;
+    --green: #1e9e5a;
+    --green-bg: #e7f8ee;
+    --orange: #d97b1c;
+    --orange-bg: #fdf1e0;
+    --red: #d94040;
+    --red-bg: #fdeaea;
+    --ink: #1c2333;
+    --ink-soft: #5b6478;
+    --line: #e3e7f0;
+    --bg: #f4f6fb;
+    --card: #ffffff;
+    --radius: 16px;
+    --shadow: 0 10px 30px rgba(30, 40, 80, 0.08);
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(160deg, #eef2fb 0%, #f7f4ff 100%);
+    color: var(--ink);
+    min-height:100vh;
+  }
+  .screen{
+    display:none;
+    min-height:100vh;
+    align-items:center;
+    justify-content:center;
+    padding: 32px 16px;
+  }
+  .screen.active{display:flex;}
+  .screen.app-screen.active{display:block;}
+
+  /* ---------- Cartes génériques ---------- */
+  .card{
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 36px;
+    width: 100%;
+    max-width: 460px;
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom: 22px;
+  }
+  .brand .logo{
+    width:40px;height:40px;border-radius:12px;
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    display:flex;align-items:center;justify-content:center;
+    color:white;font-weight:700;font-size:18px;
+    flex-shrink:0;
+  }
+  .brand .name{font-weight:700;font-size:18px;letter-spacing:.2px;}
+  .brand .name span{color:var(--blue);}
+
+  h1.title{font-size:22px;margin:0 0 6px;}
+  p.subtitle{color:var(--ink-soft);margin:0 0 24px;font-size:14.5px;line-height:1.5;}
+
+  label{
+    display:block;
+    font-size:13.5px;
+    font-weight:600;
+    margin: 16px 0 6px;
+    color: var(--ink);
+  }
+  label.first{margin-top:0;}
+  input[type=text], input[type=password], input[type=email], textarea{
+    width:100%;
+    border:1.5px solid var(--line);
+    border-radius:10px;
+    padding:11px 13px;
+    font-size:14.5px;
+    font-family:inherit;
+    background:#fbfcfe;
+    color:var(--ink);
+    transition: border-color .15s, background .15s;
+  }
+  input:focus, textarea:focus{
+    outline:none;
+    border-color: var(--blue);
+    background:#fff;
+  }
+  input.invalid, textarea.invalid{ border-color: var(--red); background:#fff8f8; }
+  input.valid, textarea.valid{ border-color: var(--green); }
+
+  .email-group{
+    display:flex;
+    align-items:stretch;
+    border:1.5px solid var(--line);
+    border-radius:10px;
+    background:#fbfcfe;
+    overflow:hidden;
+  }
+  .email-group input{
+    border:none;
+    background:transparent;
+    border-radius:0;
+    flex:1;
+    min-width:0;
+  }
+  .email-group input:focus{outline:none;}
+  .email-group.invalid{border-color:var(--red);}
+  .email-group.valid{border-color:var(--green);}
+  .email-group .suffix{
+    display:flex;align-items:center;
+    padding:0 13px;
+    background: var(--blue-light);
+    color: var(--blue-dark);
+    font-weight:600;
+    font-size:14px;
+    white-space:nowrap;
+    user-select:none;
+  }
+
+  .field-error{
+    color: var(--red);
+    background: var(--red-bg);
+    border-radius:8px;
+    padding:8px 10px;
+    font-size:13px;
+    line-height:1.45;
+    margin-top:7px;
+    display:none;
+  }
+  .field-error.show{display:block;}
+  .field-hint{
+    color: var(--ink-soft);
+    font-size:12.5px;
+    margin-top:6px;
+    line-height:1.4;
+  }
+
+  button{
+    font-family:inherit;
+    cursor:pointer;
+  }
+  .btn{
+    border:none;
+    border-radius:10px;
+    padding:12px 18px;
+    font-size:15px;
+    font-weight:600;
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    color:#fff;
+    width:100%;
+    margin-top:22px;
+    transition: transform .08s, box-shadow .15s;
+    box-shadow: 0 6px 16px rgba(47,111,237,0.25);
+  }
+  .btn:hover{ transform: translateY(-1px); }
+  .btn:active{ transform: translateY(0); }
+  .btn.secondary{
+    background:#fff;
+    color:var(--blue-dark);
+    border:1.5px solid var(--blue-light);
+    box-shadow:none;
+  }
+  .btn.ghost{
+    background:transparent;
+    color: var(--ink-soft);
+    box-shadow:none;
+    font-weight:600;
+    font-size:13.5px;
+    padding:8px;
+    margin-top:10px;
+    text-decoration:underline;
+  }
+  .btn.small{ width:auto; padding:9px 16px; margin-top:0; font-size:14px; }
+  .btn.danger-outline{
+    background:#fff;
+    color:var(--red);
+    border:1.5px solid var(--red-bg);
+    box-shadow:none;
+  }
+
+  /* ---------- Ecran confirmation ---------- */
+  .confirm-icon{
+    width:72px;height:72px;border-radius:50%;
+    background: var(--green-bg);
+    color: var(--green);
+    display:flex;align-items:center;justify-content:center;
+    font-size:34px;
+    margin:0 auto 18px;
+  }
+  .text-center{text-align:center;}
+  .email-pill{
+    display:inline-block;
+    background: var(--blue-light);
+    color: var(--blue-dark);
+    font-weight:700;
+    padding:8px 16px;
+    border-radius:999px;
+    margin: 6px 0 20px;
+    font-size:14.5px;
+    word-break:break-all;
+  }
+
+  /* ---------- Oubli mot de passe ---------- */
+  .recall-box{
+    display:none;
+    margin-top:16px;
+    background: var(--orange-bg);
+    border: 1.5px solid #f3d9ad;
+    border-radius:12px;
+    padding:14px 16px;
+    font-size:13.5px;
+    line-height:1.6;
+  }
+  .recall-box.show{display:block;}
+  .recall-box strong{color:var(--orange);}
+  .recall-box .warn{
+    margin-top:8px;
+    font-weight:700;
+    color:#a3520a;
+  }
+
+  /* ================= APP (boîte mail) ================= */
+  .app-screen{padding:0;}
+  .app-shell{
+    display:flex;
+    min-height:100vh;
+  }
+  .sidebar{
+    width:230px;
+    flex-shrink:0;
+    background: #171c2c;
+    color:#dfe3f0;
+    padding: 22px 16px;
+    display:flex;
+    flex-direction:column;
+  }
+  .sidebar .brand{color:#fff;margin-bottom:26px;}
+  .sidebar .brand .name{color:#fff;}
+  .sidebar .brand .name span{color:#8fb3ff;}
+  .compose-btn{
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    color:#fff;
+    border:none;
+    border-radius:12px;
+    padding:13px;
+    font-weight:700;
+    font-size:15px;
+    margin-bottom:22px;
+    box-shadow: 0 8px 20px rgba(47,111,237,0.35);
+  }
+  .nav-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:11px 12px;
+    border-radius:10px;
+    font-size:14.5px;
+    font-weight:600;
+    color:#b7bdd1;
+    cursor:pointer;
+    margin-bottom:4px;
+    background:none;
+    border:none;
+    width:100%;
+    text-align:left;
+  }
+  .nav-item:hover{background:#232a40;}
+  .nav-item.active{background:#2a3350; color:#fff;}
+  .sidebar-foot{
+    margin-top:auto;
+    padding-top:16px;
+    border-top:1px solid #2a3047;
+    font-size:12.5px;
+    color:#8189a1;
+  }
+  .sidebar-foot .addr{color:#dfe3f0;font-weight:600;word-break:break-all;margin-bottom:8px;}
+  .logout-link{
+    background:none;border:none;color:#8fb3ff;font-size:12.5px;font-weight:700;cursor:pointer;padding:0;text-decoration:underline;
+  }
+
+  .main{
+    flex:1;
+    min-width:0;
+    padding: 28px 40px;
+  }
+  .main-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom: 22px;
+  }
+  .main-header h2{margin:0;font-size:21px;}
+  .main-header p{margin:2px 0 0;color:var(--ink-soft);font-size:13.5px;}
+
+  .empty-state{
+    background:#fff;
+    border:2px dashed var(--line);
+    border-radius:16px;
+    padding: 60px 20px;
+    text-align:center;
+    color: var(--ink-soft);
+  }
+  .empty-state .emoji{font-size:40px;margin-bottom:10px;}
+  .empty-state b{color:var(--ink);}
+
+  .mail-list{
+    background:#fff;
+    border-radius:16px;
+    box-shadow: var(--shadow);
+    overflow:hidden;
+  }
+  .mail-row{
+    padding:16px 20px;
+    border-bottom:1px solid var(--line);
+  }
+  .mail-row:last-child{border-bottom:none;}
+  .mail-row .row1{
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    font-weight:700;
+    font-size:14.5px;
+  }
+  .mail-row .to{color:var(--ink-soft);font-weight:600;font-size:12.5px;margin-top:3px;}
+  .mail-row .date{color:var(--ink-soft);font-weight:500;font-size:12px;white-space:nowrap;}
+  .mail-row .preview{color:var(--ink-soft);font-size:13px;margin-top:6px;line-height:1.4;}
+
+  /* ---------- Modales ---------- */
+  .overlay{
+    display:none;
+    position:fixed;
+    inset:0;
+    background: rgba(20,24,40,0.45);
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    z-index:50;
+  }
+  .overlay.show{display:flex;}
+  .modal{
+    background:#fff;
+    border-radius:18px;
+    width:100%;
+    max-width:600px;
+    max-height:92vh;
+    overflow-y:auto;
+    box-shadow: 0 20px 60px rgba(10,15,30,0.3);
+  }
+  .modal-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:18px 22px;
+    border-bottom:1px solid var(--line);
+    position:sticky;
+    top:0;
+    background:#fff;
+    z-index:2;
+  }
+  .modal-head h3{margin:0;font-size:17px;}
+  .close-x{
+    background:none;border:none;font-size:20px;color:var(--ink-soft);
+    width:32px;height:32px;border-radius:8px;
+  }
+  .close-x:hover{background:var(--bg);}
+  .modal-body{padding:22px;}
+
+  .instruction-bubble{
+    background: var(--blue-light);
+    border-radius:14px;
+    padding:14px 16px;
+    font-size:14px;
+    line-height:1.55;
+    color:var(--blue-dark);
+    margin-bottom:20px;
+    position:relative;
+  }
+  .instruction-bubble b{display:block;font-size:12.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--blue);margin-bottom:5px;}
+
+  .field-label-row{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    margin: 16px 0 6px;
+  }
+  .field-label-row label{margin:0;}
+  .help{
+    position:relative;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:18px;height:18px;
+    border-radius:50%;
+    background: var(--blue-light);
+    color: var(--blue-dark);
+    font-size:11.5px;
+    font-weight:800;
+    cursor:help;
+    flex-shrink:0;
+  }
+  .help .tip{
+    display:none;
+    position:absolute;
+    bottom:24px;
+    left:50%;
+    transform:translateX(-50%);
+    background:#1c2333;
+    color:#fff;
+    font-weight:500;
+    font-size:12.5px;
+    line-height:1.4;
+    padding:9px 11px;
+    border-radius:9px;
+    width:220px;
+    z-index:5;
+    box-shadow:0 8px 20px rgba(0,0,0,0.25);
+  }
+  .help .tip::after{
+    content:"";
+    position:absolute;
+    top:100%;
+    left:50%;
+    transform:translateX(-50%);
+    border:6px solid transparent;
+    border-top-color:#1c2333;
+  }
+  .help:hover .tip, .help.tap .tip{display:block;}
+
+  .attach-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-top:8px;
+  }
+  .attach-btn{
+    background:#fff;
+    border:1.5px dashed var(--line);
+    border-radius:9px;
+    padding:8px 12px;
+    font-size:13px;
+    font-weight:600;
+    color:var(--ink-soft);
+  }
+  .attach-btn:hover{border-color:var(--blue);color:var(--blue-dark);}
+  .attach-info{font-size:12.5px;color:var(--ink-soft);}
+
+  textarea{min-height:150px;resize:vertical;line-height:1.5;}
+
+  .modal-foot{
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+    padding:16px 22px;
+    border-top:1px solid var(--line);
+    position:sticky;
+    bottom:0;
+    background:#fff;
+  }
+
+  /* ---------- Rapport ---------- */
+  .report-summary{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    background: var(--blue-light);
+    border-radius:14px;
+    padding:16px 18px;
+    margin-bottom:20px;
+  }
+  .report-summary .score{
+    font-size:24px;
+    font-weight:800;
+    color:var(--blue-dark);
+    flex-shrink:0;
+  }
+  .report-summary .msg{font-size:14px;color:var(--ink);line-height:1.5;}
+
+  .report-item{
+    display:flex;
+    gap:12px;
+    padding:14px 16px;
+    border-radius:12px;
+    margin-bottom:10px;
+    border:1.5px solid var(--line);
+  }
+  .report-item.ok{background:var(--green-bg);border-color:#bfe9d2;}
+  .report-item.warn{background:var(--orange-bg);border-color:#f3d9ad;}
+  .report-item.fail{background:var(--red-bg);border-color:#f3c6c6;}
+  .report-item .icon{font-size:19px;flex-shrink:0;}
+  .report-item .content b{display:block;font-size:14px;margin-bottom:3px;}
+  .report-item .content span{font-size:13px;line-height:1.5;color:var(--ink-soft);}
+
+  @media (max-width: 720px){
+    .app-shell{flex-direction:column;}
+    .sidebar{width:100%;flex-direction:row;align-items:center;gap:14px;padding:14px 16px;overflow-x:auto;}
+    .sidebar .brand{margin-bottom:0;}
+    .compose-btn{margin-bottom:0;padding:10px 16px;white-space:nowrap;}
+    .nav-item{white-space:nowrap;margin-bottom:0;}
+    .sidebar-foot{display:none;}
+    .main{padding:20px;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ ÉCRAN 1 : CRÉATION DE COMPTE ============ -->
+<section class="screen active" id="screen-signup">
+  <div class="card">
+    <div class="brand">
+      <div class="logo">e</div>
+      <div class="name">eSCIENCES<span>Mail</span></div>
+    </div>
+    <h1 class="title">Crée ton compte</h1>
+    <p class="subtitle">Remplis le formulaire pour créer ta propre adresse mail scolaire.</p>
+
+    <form id="form-signup" novalidate>
+      <label class="first" for="su-nom">Nom</label>
+      <input type="text" id="su-nom" required>
+
+      <label for="su-prenom">Prénom</label>
+      <input type="text" id="su-prenom" required>
+
+      <label for="su-local">Adresse mail</label>
+      <div class="email-group" id="email-group">
+        <input type="text" id="su-local" placeholder="prenom.nom" autocomplete="off">
+        <span class="suffix">@esciences.be</span>
+      </div>
+      <div class="field-error" id="err-local"></div>
+
+      <label for="su-pass">Créer un mot de passe</label>
+      <input type="password" id="su-pass" autocomplete="new-password">
+      <div class="field-hint">Au moins 8 caractères, avec une majuscule et un chiffre.</div>
+      <div class="field-error" id="err-pass"></div>
+
+      <label for="su-pass2">Répéter le mot de passe</label>
+      <input type="password" id="su-pass2" autocomplete="new-password">
+      <div class="field-error" id="err-pass2"></div>
+
+      <button type="submit" class="btn">Créer</button>
+    </form>
+  </div>
+</section>
+
+<!-- ============ ÉCRAN 2a : CONFIRMATION ============ -->
+<section class="screen" id="screen-confirm">
+  <div class="card text-center">
+    <div class="confirm-icon">✓</div>
+    <h1 class="title">Compte créé avec succès !</h1>
+    <p class="subtitle">Ta nouvelle adresse mail est prête à être utilisée.</p>
+    <div class="email-pill" id="confirm-email"></div>
+    <button class="btn" id="btn-go-login">Se connecter</button>
+  </div>
+</section>
+
+<!-- ============ ÉCRAN 2b : CONNEXION ============ -->
+<section class="screen" id="screen-login">
+  <div class="card">
+    <div class="brand">
+      <div class="logo">e</div>
+      <div class="name">eSCIENCES<span>Mail</span></div>
+    </div>
+    <h1 class="title">Connexion</h1>
+    <p class="subtitle">Entre ton adresse mail complète et ton mot de passe.</p>
+
+    <form id="form-login" novalidate>
+      <label class="first" for="li-email">Adresse mail complète</label>
+      <input type="text" id="li-email" placeholder="prenom.nom@esciences.be" autocomplete="off">
+
+      <label for="li-pass">Mot de passe</label>
+      <input type="password" id="li-pass" autocomplete="off">
+
+      <div class="field-error" id="err-login"></div>
+
+      <button type="submit" class="btn">Se connecter</button>
+    </form>
+    <button type="button" class="btn ghost" id="btn-forgot">Mot de passe ou nom d'utilisateur oublié ?</button>
+    <div class="recall-box" id="recall-box">
+      <div>📧 Ton adresse : <strong id="recall-email"></strong></div>
+      <div>🔑 Ton mot de passe : <strong id="recall-pass"></strong></div>
+      <div class="warn">⚠️ Note ces informations quelque part de secret, et ne les communique jamais à qui que ce soit !</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ÉCRAN 3 : APPLICATION MAIL ============ -->
+<section class="screen app-screen" id="screen-app">
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo">e</div>
+        <div class="name">eSCIENCES<span>Mail</span></div>
+      </div>
+      <button class="compose-btn" id="btn-compose">✏️ Nouveau</button>
+      <button class="nav-item active" id="nav-inbox" data-target="inbox">📥 Boîte de réception</button>
+      <button class="nav-item" id="nav-sent" data-target="sent">📤 Boîte d'envoi</button>
+      <div class="sidebar-foot">
+        <div class="addr" id="side-email"></div>
+        <button class="logout-link" id="btn-logout">Se déconnecter</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div id="view-inbox">
+        <div class="main-header">
+          <div>
+            <h2>Boîte de réception</h2>
+            <p>Les messages que tu reçois s'affichent ici.</p>
+          </div>
+        </div>
+        <div class="empty-state">
+          <div class="emoji">📭</div>
+          <b>Ta boîte de réception est vide.</b><br>
+          Pour l'instant, personne ne t'a écrit.
+        </div>
+      </div>
+
+      <div id="view-sent" style="display:none;">
+        <div class="main-header">
+          <div>
+            <h2>Boîte d'envoi</h2>
+            <p>Les messages que tu as envoyés s'affichent ici.</p>
+          </div>
+        </div>
+        <div id="sent-empty" class="empty-state">
+          <div class="emoji">📤</div>
+          <b>Aucun message envoyé pour l'instant.</b><br>
+          Clique sur « Nouveau » pour rédiger ton premier courriel.
+        </div>
+        <div class="mail-list" id="sent-list" style="display:none;"></div>
+      </div>
+    </main>
+  </div>
+</section>
+
+<!-- ============ MODALE : RÉDACTION ============ -->
+<div class="overlay" id="overlay-compose">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Nouveau message</h3>
+      <button class="close-x" id="btn-close-compose">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="instruction-bubble">
+        <b>📌 Consigne</b>
+        Rédige un courriel formel à ton professeur pour l'informer de ton absence au laboratoire de demain.
+      </div>
+
+      <form id="form-compose" novalidate>
+        <div class="field-label-row">
+          <label>Expéditeur</label>
+          <span class="help" tabindex="0">?<span class="tip">L'expéditeur, c'est toi : la personne qui envoie le courriel.</span></span>
+        </div>
+        <input type="text" id="cp-from" disabled>
+
+        <div class="field-label-row">
+          <label>Destinataire</label>
+          <span class="help" tabindex="0">?<span class="tip">Le destinataire, c'est la personne qui va recevoir ton courriel.</span></span>
+        </div>
+        <input type="text" id="cp-to" placeholder="ex : m.dupont@esciences.be" autocomplete="off">
+
+        <div class="field-label-row">
+          <label>Objet</label>
+          <span class="help" tabindex="0">?<span class="tip">L'objet, c'est un résumé très court (quelques mots) du sujet de ton message.</span></span>
+        </div>
+        <input type="text" id="cp-subject" placeholder="ex : Absence au laboratoire de demain" autocomplete="off">
+
+        <div class="attach-row">
+          <button type="button" class="attach-btn" id="btn-attach">📎 Pièce jointe</button>
+          <span class="help" tabindex="0">?<span class="tip">Une pièce jointe, c'est un fichier (photo, document...) que tu ajoutes à ton courriel.</span></span>
+          <span class="attach-info" id="attach-info">Aucun fichier joint</span>
+        </div>
+
+        <div class="field-label-row">
+          <label>Corps du message</label>
+          <span class="help" tabindex="0">?<span class="tip">Le corps du message, c'est le texte principal de ton courriel : ce que tu as à dire.</span></span>
+        </div>
+        <textarea id="cp-body" placeholder="Écris ton message ici..."></textarea>
+      </form>
+    </div>
+    <div class="modal-foot">
+      <button class="btn secondary small" id="btn-cancel-compose">Annuler</button>
+      <button class="btn small" id="btn-send" style="margin-top:0;">Envoyer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODALE : RAPPORT D'ANALYSE ============ -->
+<div class="overlay" id="overlay-report">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Rapport d'analyse de ton courriel</h3>
+      <button class="close-x" id="btn-close-report">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="report-summary">
+        <div class="score" id="report-score"></div>
+        <div class="msg" id="report-message"></div>
+      </div>
+      <div id="report-items"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn small" id="btn-back-inbox">Retour à la boîte de réception</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------------------------------------------------------------
+  // État de l'application
+  // ---------------------------------------------------------------
+  var account = null;       // { nom, prenom, local, email, password }
+  var sentMessages = [];    // { to, subject, body, date }
+  var attached = false;
+
+  function $(id){ return document.getElementById(id); }
+  function showScreen(id){
+    document.querySelectorAll(".screen").forEach(function(s){ s.classList.remove("active"); });
+    $(id).classList.add("active");
+  }
+
+  // ---------------------------------------------------------------
+  // ÉTAPE 1 : Validation & création du compte
+  // ---------------------------------------------------------------
+  var localInput = $("su-local");
+  var passInput  = $("su-pass");
+  var pass2Input = $("su-pass2");
+  var emailGroup = $("email-group");
+
+  var LOCAL_RE = /^[A-Za-z0-9._-]+$/;
+
+  function validateLocal(showEmpty){
+    var val = localInput.value.trim();
+    var err = $("err-local");
+    if(val === ""){
+      if(showEmpty){
+        setInvalid(emailGroup, err, "Ce champ est obligatoire : il forme la première partie de ton adresse mail.");
+      } else {
+        clearState(emailGroup, err);
+      }
+      return false;
+    }
+    if(!LOCAL_RE.test(val)){
+      setInvalid(emailGroup, err,
+        "Une adresse mail ne peut contenir ni accents, ni espaces, ni caractères spéciaux (é, à, ç, %, !, ...). " +
+        "Utilise uniquement des lettres sans accent, des chiffres, des points ( . ) ou des tirets ( - _ ). " +
+        "Par exemple : prenom.nom");
+      return false;
+    }
+    setValid(emailGroup, err);
+    return true;
+  }
+
+  function validatePass(showEmpty){
+    var val = passInput.value;
+    var err = $("err-pass");
+    if(val === ""){
+      if(showEmpty){
+        setInvalid(passInput, err, "Ce champ est obligatoire.");
+      } else {
+        clearState(passInput, err);
+      }
+      return false;
+    }
+    var missing = [];
+    if(val.length < 8) missing.push("contenir au moins 8 caractères");
+    if(!/[A-Z]/.test(val)) missing.push("contenir au moins une majuscule");
+    if(!/[0-9]/.test(val)) missing.push("contenir au moins un chiffre");
+    if(missing.length > 0){
+      setInvalid(passInput, err,
+        "Ton mot de passe n'est pas assez solide. Il doit " + missing.join(", ") + ". " +
+        "Astuce : mélange une majuscule, des minuscules et un chiffre, par exemple : Robot42fusée");
+      return false;
+    }
+    setValid(passInput, err);
+    return true;
+  }
+
+  function validatePass2(showEmpty){
+    var val = pass2Input.value;
+    var err = $("err-pass2");
+    if(val === ""){
+      if(showEmpty){
+        setInvalid(pass2Input, err, "Ce champ est obligatoire.");
+      } else {
+        clearState(pass2Input, err);
+      }
+      return false;
+    }
+    if(val !== passInput.value){
+      setInvalid(pass2Input, err, "Les deux mots de passe ne correspondent pas. Vérifie que tu as tapé exactement la même chose.");
+      return false;
+    }
+    setValid(pass2Input, err);
+    return true;
+  }
+
+  function setInvalid(field, errBox, message){
+    field.classList.remove("valid");
+    field.classList.add("invalid");
+    errBox.textContent = message;
+    errBox.classList.add("show");
+  }
+  function setValid(field, errBox){
+    field.classList.remove("invalid");
+    field.classList.add("valid");
+    errBox.classList.remove("show");
+    errBox.textContent = "";
+  }
+  function clearState(field, errBox){
+    field.classList.remove("invalid","valid");
+    errBox.classList.remove("show");
+    errBox.textContent = "";
+  }
+
+  localInput.addEventListener("input", function(){ validateLocal(false); });
+  passInput.addEventListener("input", function(){ validatePass(false); if(pass2Input.value) validatePass2(false); });
+  pass2Input.addEventListener("input", function(){ validatePass2(false); });
+
+  $("form-signup").addEventListener("submit", function(e){
+    e.preventDefault();
+    var okLocal = validateLocal(true);
+    var okPass  = validatePass(true);
+    var okPass2 = validatePass2(true);
+    var nom = $("su-nom").value.trim();
+    var prenom = $("su-prenom").value.trim();
+
+    if(nom === ""){ $("su-nom").focus(); return; }
+    if(prenom === ""){ $("su-prenom").focus(); return; }
+    if(!okLocal){ localInput.focus(); return; }
+    if(!okPass){ passInput.focus(); return; }
+    if(!okPass2){ pass2Input.focus(); return; }
+
+    var local = localInput.value.trim().toLowerCase();
+    account = {
+      nom: nom,
+      prenom: prenom,
+      local: local,
+      email: local + "@esciences.be",
+      password: passInput.value
+    };
+
+    $("confirm-email").textContent = account.email;
+    showScreen("screen-confirm");
+  });
+
+  // ---------------------------------------------------------------
+  // ÉTAPE 2 : Connexion
+  // ---------------------------------------------------------------
+  $("btn-go-login").addEventListener("click", function(){
+    $("li-email").value = "";
+    $("li-pass").value = "";
+    $("err-login").classList.remove("show");
+    $("recall-box").classList.remove("show");
+    showScreen("screen-login");
+  });
+
+  $("form-login").addEventListener("submit", function(e){
+    e.preventDefault();
+    var email = $("li-email").value.trim().toLowerCase();
+    var pass = $("li-pass").value;
+    var err = $("err-login");
+
+    if(account && email === account.email && pass === account.password){
+      err.classList.remove("show");
+      enterApp();
+    } else {
+      err.textContent = "Adresse mail ou mot de passe incorrect. Vérifie que tu as bien tapé ton adresse complète (avec @esciences.be) et ton mot de passe, en respectant les majuscules.";
+      err.classList.add("show");
+    }
+  });
+
+  $("btn-forgot").addEventListener("click", function(){
+    if(!account) return;
+    $("recall-email").textContent = account.email;
+    $("recall-pass").textContent = account.password;
+    $("recall-box").classList.add("show");
+  });
+
+  $("btn-logout").addEventListener("click", function(){
+    showScreen("screen-login");
+    $("li-email").value = "";
+    $("li-pass").value = "";
+  });
+
+  // ---------------------------------------------------------------
+  // ÉTAPE 3 : Boîte mail
+  // ---------------------------------------------------------------
+  function enterApp(){
+    $("side-email").textContent = account.email;
+    $("cp-from").value = account.email;
+    switchView("inbox");
+    showScreen("screen-app");
+  }
+
+  function switchView(target){
+    $("nav-inbox").classList.toggle("active", target === "inbox");
+    $("nav-sent").classList.toggle("active", target === "sent");
+    $("view-inbox").style.display = target === "inbox" ? "block" : "none";
+    $("view-sent").style.display = target === "sent" ? "block" : "none";
+  }
+  $("nav-inbox").addEventListener("click", function(){ switchView("inbox"); });
+  $("nav-sent").addEventListener("click", function(){ switchView("sent"); });
+
+  function renderSent(){
+    var listEl = $("sent-list");
+    var emptyEl = $("sent-empty");
+    if(sentMessages.length === 0){
+      listEl.style.display = "none";
+      emptyEl.style.display = "block";
+      return;
+    }
+    emptyEl.style.display = "none";
+    listEl.style.display = "block";
+    listEl.innerHTML = "";
+    sentMessages.slice().reverse().forEach(function(m){
+      var row = document.createElement("div");
+      row.className = "mail-row";
+      row.innerHTML =
+        '<div class="row1"><span>' + escapeHtml(m.subject || "(sans objet)") + '</span>' +
+        '<span class="date">' + m.date + '</span></div>' +
+        '<div class="to">À : ' + escapeHtml(m.to) + '</div>' +
+        '<div class="preview">' + escapeHtml(m.body.slice(0,120)) + (m.body.length>120?"…":"") + '</div>';
+      listEl.appendChild(row);
+    });
+  }
+
+  function escapeHtml(str){
+    return String(str)
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  // ---------------------------------------------------------------
+  // Modale de rédaction
+  // ---------------------------------------------------------------
+  function openCompose(){
+    $("cp-to").value = "";
+    $("cp-subject").value = "";
+    $("cp-body").value = "";
+    attached = false;
+    $("attach-info").textContent = "Aucun fichier joint";
+    $("overlay-compose").classList.add("show");
+  }
+  function closeCompose(){ $("overlay-compose").classList.remove("show"); }
+
+  $("btn-compose").addEventListener("click", openCompose);
+  $("btn-close-compose").addEventListener("click", closeCompose);
+  $("btn-cancel-compose").addEventListener("click", closeCompose);
+
+  $("btn-attach").addEventListener("click", function(){
+    attached = !attached;
+    $("attach-info").textContent = attached ? "📎 justificatif.pdf" : "Aucun fichier joint";
+  });
+
+  // Tooltips tactiles (clic) en plus du survol
+  document.querySelectorAll(".help").forEach(function(h){
+    h.addEventListener("click", function(e){
+      e.stopPropagation();
+      var wasOpen = h.classList.contains("tap");
+      document.querySelectorAll(".help.tap").forEach(function(o){ o.classList.remove("tap"); });
+      if(!wasOpen) h.classList.add("tap");
+    });
+  });
+  document.addEventListener("click", function(){
+    document.querySelectorAll(".help.tap").forEach(function(o){ o.classList.remove("tap"); });
+  });
+
+  // ---------------------------------------------------------------
+  // ÉTAPE 4 : Envoi + rapport d'analyse
+  // ---------------------------------------------------------------
+  $("btn-send").addEventListener("click", function(){
+    var to = $("cp-to").value.trim();
+    var subject = $("cp-subject").value.trim();
+    var body = $("cp-body").value;
+
+    var report = analyzeEmail(to, subject, body);
+
+    sentMessages.push({
+      to: to, subject: subject, body: body,
+      date: new Date().toLocaleString("fr-BE", {day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})
+    });
+    renderSent();
+
+    closeCompose();
+    renderReport(report);
+    $("overlay-report").classList.add("show");
+  });
+
+  function analyzeEmail(to, subject, body){
+    var items = [];
+
+    // 1. Destinataire
+    var toTrim = to.trim();
+    if(toTrim === ""){
+      items.push({state:"fail", title:"Destinataire manquant",
+        detail:"Le champ destinataire est vide. Un courriel a toujours besoin d'un destinataire pour savoir à qui il est envoyé."});
+    } else if(toTrim.indexOf("@") === -1){
+      items.push({state:"fail", title:"Adresse du destinataire invalide",
+        detail:"L'adresse « " + toTrim + " » ne contient pas de @. Une adresse mail valide ressemble toujours à quelquechose@quelquepart, par exemple : m.dupont@esciences.be"});
+    } else {
+      items.push({state:"ok", title:"Adresse du destinataire valide",
+        detail:"L'adresse contient bien un @, elle a la bonne forme."});
+    }
+
+    // 2. Objet
+    var subj = subject.trim();
+    if(subj === ""){
+      items.push({state:"fail", title:"Objet absent",
+        detail:"Le champ objet est vide. Ajoute toujours quelques mots qui résument le sujet de ton message, par exemple : « Absence au laboratoire »."});
+    } else if(subj.length > 60){
+      items.push({state:"warn", title:"Objet trop long",
+        detail:"Ton objet fait " + subj.length + " caractères. Un objet doit rester court et efficace (moins de 60 caractères) : c'est un titre, pas un résumé complet."});
+    } else if(body.trim().length > 0 && subj.length >= body.trim().length * 0.6){
+      items.push({state:"warn", title:"L'objet contient tout le message",
+        detail:"Ton objet reprend quasiment tout ton message. Le rôle de l'objet est de donner une idée rapide du sujet en quelques mots, pas de remplacer le corps du message."});
+    } else {
+      items.push({state:"ok", title:"Objet présent et concis",
+        detail:"Ton objet résume bien le sujet en peu de mots. C'est exactement ce qu'il faut."});
+    }
+
+    // 3. Formule d'appel
+    var bodyLines = body.split("\n").map(function(l){return l.trim();}).filter(function(l){return l !== "";});
+    var firstLine = bodyLines.length > 0 ? bodyLines[0] : "";
+    var formalRe = /^(bonjour|madame|monsieur|cher|ch[eè]re|chers|ch[eè]res)/i;
+    var informalRe = /^(salut|coucou|yo|hey|slt)/i;
+    if(firstLine === ""){
+      items.push({state:"fail", title:"Aucune formule d'appel",
+        detail:"Ton message ne contient pas de texte. Commence toujours par une formule de politesse comme « Bonjour, » ou « Madame, Monsieur, »."});
+    } else if(informalRe.test(firstLine)){
+      items.push({state:"warn", title:"Formule d'appel trop familière",
+        detail:"Tu commences par « " + firstLine.split(/[ ,]/)[0] + " », ce qui est trop familier pour un courriel formel adressé à un professeur. Préfère « Bonjour, » ou « Madame, Monsieur, »."});
+    } else if(formalRe.test(firstLine)){
+      items.push({state:"ok", title:"Formule d'appel correcte",
+        detail:"Ton message commence par une formule de politesse adaptée à un courriel formel."});
+    } else {
+      items.push({state:"fail", title:"Aucune formule d'appel trouvée",
+        detail:"Ton message ne commence pas par une formule de politesse. Ajoute par exemple « Bonjour, » ou « Madame, Monsieur, » au tout début."});
+    }
+
+    // 4. Signature
+    var lastLine = bodyLines.length > 0 ? bodyLines[bodyLines.length - 1] : "";
+    var lastLower = lastLine.toLowerCase();
+    var hasSignature = lastLine !== "" && account && (
+      lastLower.indexOf(account.prenom.toLowerCase()) !== -1 ||
+      lastLower.indexOf(account.nom.toLowerCase()) !== -1
+    );
+    if(hasSignature){
+      items.push({state:"ok", title:"Signature présente",
+        detail:"Ton message se termine par ton prénom : le destinataire sait qui lui écrit."});
+    } else {
+      items.push({state:"fail", title:"Signature manquante",
+        detail:"Ton message ne se termine pas par ton prénom. Termine toujours un courriel en indiquant qui tu es, par exemple : « ... Merci d'avance, " + (account ? account.prenom : "Prénom") + " »."});
+    }
+
+    return items;
+  }
+
+  function renderReport(items){
+    var okCount = items.filter(function(i){return i.state==="ok";}).length;
+    var total = items.length;
+    $("report-score").textContent = okCount + "/" + total;
+
+    var msg;
+    if(okCount === total){
+      msg = "Bravo, ton courriel respecte toutes les règles d'un message formel ! 🎉";
+    } else if(okCount >= total/2){
+      msg = "Bon travail, il reste toutefois quelques points à améliorer ci-dessous.";
+    } else {
+      msg = "Ton courriel a besoin de plusieurs corrections. Regarde les explications ci-dessous pour progresser.";
+    }
+    $("report-message").textContent = msg;
+
+    var icons = {ok:"✅", warn:"⚠️", fail:"❌"};
+    var container = $("report-items");
+    container.innerHTML = "";
+    items.forEach(function(item){
+      var div = document.createElement("div");
+      div.className = "report-item " + item.state;
+      div.innerHTML =
+        '<div class="icon">' + icons[item.state] + '</div>' +
+        '<div class="content"><b>' + escapeHtml(item.title) + '</b><span>' + escapeHtml(item.detail) + '</span></div>';
+      container.appendChild(div);
+    });
+  }
+
+  $("btn-close-report").addEventListener("click", function(){
+    $("overlay-report").classList.remove("show");
+  });
+  $("btn-back-inbox").addEventListener("click", function(){
+    $("overlay-report").classList.remove("show");
+    switchView("sent");
+  });
+
+})();
+</script>
+</body>
+</html>
