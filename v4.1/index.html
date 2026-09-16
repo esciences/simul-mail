@@ -1,0 +1,1382 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>eSCIENCES — Simulateur de Messagerie</title>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js"></script>
+<style>
+  :root{
+    /* Charte graphique imposée */
+    --app-bg: #F8FAFC;
+    --panel: #FFFFFF;
+    --ink: #0F172A;
+    --action: #0ea5e9;
+    --action-hover: #0284c7;
+    --line: #CBD5E1;
+    --warn: #EA580C;
+
+    /* Nuances dérivées de cette même charte (états, hiérarchie) */
+    --ink-soft: #475569;
+    --line-soft: #E2E8F0;
+    --action-pale: #E0F2FE;
+    --warn-dark: #9A3412;
+    --warn-pale: #FFEDD5;
+
+    --radius: 2px;
+  }
+  *{box-sizing:border-box;}
+  html{font-size:18px;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    font-family: "Public Sans", Arial, Helvetica, sans-serif;
+    background: var(--app-bg);
+    color: var(--ink);
+    line-height:1.5;
+  }
+  h1,h2,h3{font-family:inherit;}
+  *:focus-visible{outline:2px solid var(--action); outline-offset:2px;}
+  button{ font-family:inherit; cursor:pointer; }
+  i.fa-solid, i.fa-regular{ line-height:1; }
+
+  /* ================= TITLEBAR ================= */
+  .topbar{
+    flex-shrink:0;
+    background: var(--ink);
+    color: #fff;
+    border-bottom:1px solid var(--line);
+    padding: 0.65rem 1.3rem;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:1rem;
+    flex-wrap:wrap;
+  }
+  .topbar .brand{ display:flex; align-items:center; gap:0.55rem; font-weight:700; font-size:1rem; letter-spacing:.01em; }
+  .topbar .brand i{ font-size:1.05rem; color:var(--action); }
+  .topbar .level-badge{ font-size:0.78rem; font-weight:700; background:var(--action); color:#fff; padding:0.2rem 0.6rem; border-radius: var(--radius); }
+
+  main{ flex:1; min-height:0; display:flex; flex-direction:column; }
+
+  .screen{
+    display:none;
+    flex:1;
+    min-height:0;
+    align-items:flex-start;
+    justify-content:center;
+    padding: 1.6rem 1.2rem;
+    overflow-y:auto;
+  }
+  .screen.active{display:flex;}
+  .screen.app-screen{ padding:0; }
+  .screen.app-screen.active{display:flex;align-items:stretch;}
+
+  /* ---------- Cartes génériques ---------- */
+  .card{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 1.8rem 2rem;
+    width: 100%;
+    max-width: 30rem;
+    margin: auto 0;
+  }
+
+  .eyebrow{ text-transform:uppercase; letter-spacing:.08em; font-size:0.78rem; font-weight:700; color:var(--action-hover); margin:0 0 0.35rem; }
+  h1.title{font-size:1.35rem;font-weight:800;margin:0 0 0.35rem;}
+  p.subtitle{color:var(--ink-soft);margin:0 0 1.2rem;font-size:0.98rem;line-height:1.55;}
+
+  label{ display:block; font-size:0.98rem; font-weight:700; margin: 0.9rem 0 0.35rem; color: var(--ink); }
+  label.first{margin-top:0;}
+  input[type=text], input[type=password], input[type=email]{
+    width:100%;
+    border:1px solid var(--line);
+    border-radius: var(--radius);
+    padding:0.6rem 0.75rem;
+    font-size:0.98rem;
+    font-family:inherit;
+    background:var(--panel);
+    color:var(--ink);
+  }
+  input:focus{ outline:none; border-color: var(--action); box-shadow: 0 0 0 3px var(--action-pale); }
+  input.invalid{ border-color: var(--warn); background:var(--warn-pale); }
+  input.valid{ border-color: var(--action); }
+
+  .level-select{ display:flex; flex-direction:column; gap:0.8rem; margin-top:0.5rem; }
+  .level-card{ display:flex; align-items:center; gap:0.9rem; background:var(--panel); border:1px solid var(--line); border-radius: var(--radius); padding:1rem 1.1rem; text-align:left; width:100%; }
+  .level-card:hover{ border-color:var(--action); background:var(--action-pale); }
+  .level-card i{ font-size:1.5rem; color:var(--action-hover); flex-shrink:0; }
+  .level-card .t{ font-weight:700; font-size:1.02rem; }
+  .level-card .s{ font-size:0.85rem; color:var(--ink-soft); margin-top:0.1rem; }
+
+  .email-group{ display:flex; align-items:stretch; border:1px solid var(--line); border-radius: var(--radius); background:var(--panel); overflow:hidden; flex-wrap:wrap; }
+  .email-group.invalid{border-color:var(--warn);}
+  .email-group.valid{border-color:var(--action);}
+  .email-group input{ border:none; background:transparent; border-radius:0; flex:1; min-width:8rem; }
+  .email-group input:focus{outline:none;box-shadow:none;}
+  .email-group .suffix{ display:flex;align-items:center; padding:0 0.75rem; background: var(--line-soft); color: var(--ink-soft); font-weight:700; font-size:0.9rem; white-space:nowrap; user-select:none; border-left:1px solid var(--line); }
+
+  .password-group{ position:relative; }
+  .password-group input{ padding-right:2.9rem; }
+  .eye-btn{ position:absolute; right:0.3rem; top:50%; transform:translateY(-50%); width:2.2rem; height:2.2rem; border:1px solid transparent; background:transparent; border-radius: var(--radius); font-size:1rem; color:var(--ink-soft); display:flex; align-items:center; justify-content:center; }
+  .eye-btn:hover{background:var(--line-soft); border-color:var(--line);}
+  .eye-btn .icon-hide{display:none;}
+  .eye-btn.revealed .icon-show{display:none;}
+  .eye-btn.revealed .icon-hide{display:inline;}
+
+  .field-hint{ color: var(--ink-soft); font-size:0.85rem; margin-top:0.35rem; line-height:1.45; }
+
+  /* ---------- Bulles de conseil (jamais rouges) ---------- */
+  .tip-bubble{ display:none; margin-top:0.6rem; background: var(--warn-pale); border:1px solid var(--line); border-left:3px solid var(--warn); border-radius: var(--radius); padding:0.7rem 0.85rem; }
+  .tip-bubble.show{display:flex; gap:0.55rem; align-items:flex-start;}
+  .tip-bubble .tip-icon{font-size:1.05rem;flex-shrink:0;line-height:1.3;color:var(--warn-dark);}
+  .tip-bubble .tip-text b{display:block;color:var(--warn-dark);font-size:0.92rem;margin-bottom:0.1rem;}
+  .tip-bubble .tip-text span{color:var(--ink);font-size:0.88rem;line-height:1.45;}
+
+  .btn{
+    border:1px solid var(--action-hover);
+    border-radius: var(--radius);
+    padding:0.7rem 1.1rem;
+    font-size:0.98rem;
+    font-weight:700;
+    background: var(--action);
+    color:#fff;
+    width:100%;
+    min-height:2.8rem;
+    margin-top:1.2rem;
+    display:inline-flex; align-items:center; justify-content:center; gap:0.5rem;
+  }
+  .btn:hover{ background: var(--action-hover); }
+  .btn:active{ filter:brightness(0.93); }
+  .btn.secondary{ background:var(--panel); color:var(--ink); border-color:var(--line); }
+  .btn.secondary:hover{ background: var(--line-soft); }
+  .btn.ghost{ background:transparent; color: var(--action-hover); border-color:transparent; font-weight:700; font-size:0.92rem; padding:0.45rem; margin-top:0.6rem; text-decoration:underline; width:auto; min-height:0; }
+  .btn.ghost:hover{ background:var(--action-pale); }
+  .btn.small{ width:auto; padding:0.55rem 1rem; margin-top:0; font-size:0.92rem; min-height:2.4rem; }
+  .btn:disabled{ opacity:.5; cursor:not-allowed; }
+  .btn:disabled:hover{ background:var(--action); }
+
+  /* ---------- Encarts pédagogiques ---------- */
+  .info-box{ display:flex; gap:0.6rem; align-items:flex-start; background: var(--action-pale); border:1px solid var(--line); border-left:3px solid var(--action); border-radius: var(--radius); padding:0.8rem 0.95rem; margin-bottom:0.8rem; font-size:0.9rem; line-height:1.5; color:var(--ink); }
+  .info-box .info-icon{font-size:1.1rem;flex-shrink:0;color:var(--action-hover);}
+  .info-box.warn{ background:var(--warn-pale); border-left-color:var(--warn); }
+  .info-box.warn .info-icon{ color:var(--warn-dark); }
+  .info-box b{display:block;margin-bottom:0.15rem;}
+
+  .confirm-mark{ width:3.2rem;height:3.2rem; background: var(--action); color: #fff; border-radius: var(--radius); display:flex;align-items:center;justify-content:center; font-size:1.4rem; margin:0 auto 0.9rem; }
+  .text-center{text-align:center;}
+  .email-pill{ display:inline-block; background: var(--line-soft); color: var(--ink); border:1px solid var(--line); font-weight:700; padding:0.4rem 0.9rem; border-radius: var(--radius); margin: 0.25rem 0 0.8rem; font-size:0.9rem; word-break:break-all; }
+
+  .recall-box{ display:none; margin-top:0.9rem; background: var(--warn-pale); border: 1px solid var(--line); border-left:3px solid var(--warn); border-radius: var(--radius); padding:0.85rem 1rem; font-size:0.9rem; line-height:1.55; }
+  .recall-box.show{display:block;}
+  .recall-box .line{ display:flex; align-items:center; gap:0.5rem; margin-bottom:0.3rem; }
+  .recall-box strong{color:var(--ink);}
+  .recall-box .warn-line{ margin-top:0.5rem; font-weight:700; color:var(--warn-dark); display:flex; gap:0.5rem; align-items:flex-start; }
+
+  /* ---------- Modales ---------- */
+  .overlay{ display:none; position:fixed; inset:0; background: rgba(15,23,42,0.45); align-items:center; justify-content:center; padding:1.1rem; z-index:50; }
+  .overlay.show{display:flex;}
+  .overlay.overlay-top{ z-index:60; }
+  .modal{ background:var(--panel); border:1px solid var(--line); box-shadow: 0 4px 14px rgba(15,23,42,.16); border-radius: var(--radius); width:100%; max-width:25rem; max-height:90vh; display:flex; flex-direction:column; padding:1.5rem; }
+  .modal.wide{ max-width:40rem; padding:0; }
+  .modal.xwide{ max-width:46rem; padding:0; }
+  .modal-head{ display:flex; align-items:center; justify-content:space-between; padding:0.85rem 1.1rem; border-bottom:1px solid var(--line); flex-shrink:0; background:var(--line-soft); }
+  .modal-head h3{margin:0;font-size:1.05rem;display:flex;align-items:center;gap:0.5rem;}
+  .close-x{ background:none; border:1px solid transparent; font-size:1rem; color:var(--ink-soft); width:2rem; height:2rem; border-radius: var(--radius); display:flex; align-items:center; justify-content:center; }
+  .close-x:hover{background:var(--line-soft); border-color:var(--line); color:var(--ink);}
+  .modal-body{padding:1.2rem; overflow-y:auto; min-height:0;}
+  .modal-foot{ display:flex; justify-content:flex-end; gap:0.6rem; flex-wrap:wrap; padding:0.85rem 1.1rem; border-top:1px solid var(--line); flex-shrink:0; }
+
+  .intercept-icon{font-size:1.8rem;text-align:center;margin-bottom:0.5rem;color:var(--action-hover);}
+  .intercept-actions{display:flex;gap:0.6rem;margin-top:1.1rem;flex-wrap:wrap;}
+  .intercept-actions .btn{margin-top:0;}
+
+  /* ================= APP (boîte mail) ================= */
+  .app-shell{ display:flex; flex:1; min-height:0; width:100%; }
+  .sidebar{ width:14.5rem; flex-shrink:0; background: var(--app-bg); color:var(--ink); padding: 1.1rem 0.9rem; border-right:1px solid var(--line); display:flex; flex-direction:column; overflow-y:auto; }
+  .sidebar h2.app-title{ margin:0 0 1rem; font-size:0.95rem; font-weight:800; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-soft); display:flex; align-items:center; gap:0.5rem; }
+  .compose-btn{ background: var(--action); color:#fff; border:1px solid var(--action-hover); border-radius: var(--radius); padding:0.7rem; font-weight:700; font-size:0.94rem; min-height:2.7rem; margin-bottom:1.1rem; display:flex; align-items:center; justify-content:center; gap:0.5rem; }
+  .compose-btn:hover{ background:var(--action-hover); }
+  .nav-item{ display:flex; align-items:center; gap:0.6rem; padding:0.55rem 0.6rem; border-radius: var(--radius); font-size:0.9rem; font-weight:600; color:var(--ink-soft); cursor:pointer; margin-bottom:0.2rem; background:none; border:1px solid transparent; width:100%; text-align:left; }
+  .nav-item i{ width:1.1rem; text-align:center; flex-shrink:0; }
+  .nav-item:hover{background:var(--line-soft);}
+  .nav-item.active{background:var(--action); color:#fff;}
+  .nav-item .count{ margin-left:auto; background:var(--warn); color:#fff; font-size:0.72rem; font-weight:800; padding:0.05rem 0.4rem; border-radius: var(--radius); }
+  .nav-item.active .count{ background:rgba(255,255,255,.3); }
+  .sidebar-foot{ margin-top:auto; padding-top:0.8rem; border-top:1px solid var(--line); font-size:0.8rem; color:var(--ink-soft); }
+  .sidebar-foot .addr{color:var(--ink);font-weight:700;word-break:break-all;margin-bottom:0.4rem;}
+  .logout-link{ background:none;border:none;color:var(--action-hover);font-size:0.8rem;font-weight:700;cursor:pointer;padding:0;text-decoration:underline; display:flex; align-items:center; gap:0.4rem; }
+
+  .main{ flex:1; min-width:0; padding: 1.3rem 1.7rem; overflow:hidden; display:flex; flex-direction:column; background:var(--panel); }
+  .main-header{ flex-shrink:0; display:flex; align-items:center; justify-content:space-between; margin-bottom: 1rem; border-bottom:1px solid var(--line-soft); padding-bottom:0.7rem; }
+  .main-header h2{margin:0;font-size:1.15rem;display:flex;align-items:center;gap:0.5rem;}
+  .main-header p{margin:0.1rem 0 0;color:var(--ink-soft);font-size:0.86rem;}
+
+  .list-scroll{ flex:1; min-height:0; overflow-y:auto; }
+
+  .empty-state{ background:var(--app-bg); border:1px dashed var(--line); border-radius: var(--radius); padding: 2.4rem 1.2rem; text-align:center; color: var(--ink-soft); }
+  .empty-state i{font-size:2rem;margin-bottom:0.5rem;color:var(--line);display:block;}
+  .empty-state b{color:var(--ink);}
+
+  .mail-list{ background:var(--panel); border:1px solid var(--line); border-radius: var(--radius); overflow:hidden; }
+  .mail-row{ padding:0.75rem 0.95rem; border-bottom:1px solid var(--line-soft); cursor:pointer; display:flex; gap:0.65rem; align-items:flex-start; }
+  .mail-row:last-child{border-bottom:none;}
+  .mail-row:hover{ background:var(--action-pale); }
+  .mail-row .dot{ width:0.5rem; height:0.5rem; border-radius:50%; background:var(--action); margin-top:0.5rem; flex-shrink:0; }
+  .mail-row.read .dot{ background:transparent; }
+  .mail-row .body{ flex:1; min-width:0; }
+  .mail-row .row1{ display:flex; justify-content:space-between; gap:0.7rem; font-size:0.92rem; }
+  .mail-row .row1 .from{ font-weight:600; }
+  .mail-row.unread .row1 .from, .mail-row.unread .row1 .subject{ font-weight:800; }
+  .mail-row .subject{ margin-top:0.1rem; font-size:0.9rem; }
+  .mail-row .to{color:var(--ink-soft);font-weight:600;font-size:0.8rem;margin-top:0.15rem;}
+  .mail-row .date{color:var(--ink-soft);font-weight:500;font-size:0.76rem;white-space:nowrap;}
+  .mail-row .preview{color:var(--ink-soft);font-size:0.83rem;margin-top:0.25rem;line-height:1.4;}
+  .mail-row .spam-flag{ color:var(--warn-dark); font-size:0.76rem; font-weight:700; margin-top:0.25rem; display:flex; align-items:center; gap:0.35rem; }
+
+  .detail-meta{ font-size:0.9rem; line-height:1.7; margin-bottom:0.9rem; padding-bottom:0.9rem; border-bottom:1px solid var(--line-soft); }
+  .detail-meta .row{ display:flex; gap:0.5rem; }
+  .detail-meta .row .k{ font-weight:700; width:6.5rem; flex-shrink:0; color:var(--ink-soft); }
+  .detail-body{ font-size:0.95rem; line-height:1.6; white-space:pre-wrap; }
+
+  /* ---------- Rédaction ---------- */
+  .instruction-float{ background: var(--action-pale); border:1px solid var(--line); border-left:3px solid var(--action); border-radius: var(--radius); padding:0.8rem 1rem; font-size:0.92rem; line-height:1.5; color:var(--ink); margin:1.2rem 1.2rem 0; display:flex; gap:0.6rem; }
+  .instruction-float i{ color:var(--action-hover); flex-shrink:0; margin-top:0.15rem; }
+  .instruction-float b{display:block;font-size:0.8rem;text-transform:uppercase;letter-spacing:.05em;color:var(--action-hover);margin-bottom:0.2rem;}
+
+  .field-label-row{ display:flex; align-items:center; gap:0.4rem; margin: 0.9rem 0 0.35rem; flex-wrap:wrap; }
+  .field-label-row label{margin:0;}
+  .field-two{ display:grid; grid-template-columns:1fr 1fr; gap:0 0.9rem; }
+  .help{ position:relative; display:inline-flex; align-items:center; justify-content:center; width:1.25rem;height:1.25rem; border-radius: var(--radius); background: var(--line-soft); border:1px solid var(--line); color: var(--ink-soft); font-size:0.7rem; cursor:help; flex-shrink:0; }
+  .help .tip{ display:none; position:absolute; bottom:1.6rem; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; font-weight:500; font-size:0.82rem; line-height:1.4; padding:0.55rem 0.7rem; border-radius: var(--radius); width:14rem; z-index:5; }
+  .help:hover .tip, .help.tap .tip{display:block;}
+
+  .attach-row{ display:flex; align-items:center; gap:0.6rem; margin-top:0.4rem; flex-wrap:wrap; }
+  .attach-btn{ background:var(--panel); border:1px dashed var(--line); border-radius: var(--radius); padding:0.5rem 0.8rem; font-size:0.86rem; font-weight:700; color:var(--ink); min-height:2.3rem; display:flex; align-items:center; gap:0.5rem; }
+  .attach-btn:hover{background:var(--line-soft); border-color:var(--action);}
+  .attach-chip{ display:none; align-items:center; gap:0.5rem; background:var(--action-pale); border:1px solid var(--action); border-radius: var(--radius); padding:0.4rem 0.6rem; font-size:0.85rem; font-weight:600; color:var(--ink); }
+  .attach-chip.show{ display:flex; }
+  .attach-chip i.file-icon{ color:var(--action-hover); }
+  .attach-chip .remove-attach{ background:none; border:none; color:var(--ink-soft); padding:0.1rem; display:flex; }
+  .attach-chip .remove-attach:hover{ color:var(--warn-dark); }
+
+  .editor-toolbar{ display:flex; gap:0.3rem; margin-top:0.4rem; margin-bottom:0.45rem; }
+  .ed-btn{ width:2.1rem; height:2.1rem; border:1px solid var(--line); background:var(--panel); border-radius: var(--radius); display:flex; align-items:center; justify-content:center; color:var(--ink); font-size:0.82rem; }
+  .ed-btn:hover{ background:var(--line-soft); }
+
+  .editable-body{
+    width:100%;
+    min-height:8rem;
+    max-height:16rem;
+    overflow-y:auto;
+    border:1px solid var(--line);
+    border-radius: var(--radius);
+    padding:0.65rem 0.8rem;
+    font-size:0.96rem;
+    line-height:1.55;
+    background:var(--panel);
+    color:var(--ink);
+  }
+  .editable-body:focus{ outline:none; border-color: var(--action); box-shadow: 0 0 0 3px var(--action-pale); }
+  .editable-body:empty:before{ content: attr(data-placeholder); color:var(--ink-soft); }
+
+  /* ---------- Rapport ---------- */
+  .report-summary{ display:flex; align-items:center; gap:0.9rem; background: var(--action-pale); border:1px solid var(--line); border-radius: var(--radius); padding:0.9rem 1rem; margin-bottom:1.1rem; flex-wrap:wrap; }
+  .report-summary .score{ font-size:1.3rem; font-weight:800; color:var(--action-hover); flex-shrink:0; }
+  .report-summary .msg{font-size:0.92rem;color:var(--ink);line-height:1.45;}
+
+  .report-item{ display:flex; gap:0.7rem; padding:0.8rem 0.95rem; border:1px solid var(--line); border-radius: var(--radius); margin-bottom:0.6rem; }
+  .report-item.ok{background:#F0FDF4; border-left:3px solid var(--action);}
+  .report-item.improve{background:var(--warn-pale); border-left:3px solid var(--warn);}
+  .report-item .icon{font-size:1.1rem;flex-shrink:0;margin-top:0.1rem;}
+  .report-item.ok .icon{color:var(--action-hover);}
+  .report-item.improve .icon{color:var(--warn-dark);}
+  .report-item .content b{display:block;font-size:0.94rem;margin-bottom:0.15rem;}
+  .report-item .content span{font-size:0.86rem;line-height:1.45;color:var(--ink-soft);}
+
+  /* ---------- Explorateur de fichiers ---------- */
+  .explorer-body{ display:flex; flex:1; min-height:0; }
+  .explorer-sidebar{ width:11rem; flex-shrink:0; background:var(--app-bg); border-right:1px solid var(--line); padding:0.8rem 0.6rem; overflow-y:auto; }
+  .explorer-main{ flex:1; min-width:0; display:flex; flex-direction:column; min-height:0; }
+  .breadcrumb{ flex-shrink:0; display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap; padding:0.7rem 1rem; border-bottom:1px solid var(--line-soft); font-size:0.86rem; }
+  .breadcrumb .crumb{ background:none; border:none; color:var(--action-hover); font-weight:600; font-size:0.86rem; padding:0.15rem 0.3rem; border-radius: var(--radius); }
+  .breadcrumb .crumb:hover{ background:var(--action-pale); }
+  .breadcrumb .crumb:last-child{ color:var(--ink); font-weight:700; }
+  .breadcrumb i{ font-size:0.65rem; color:var(--ink-soft); }
+  .explorer-grid{ flex:1; min-height:0; overflow-y:auto; padding:1rem; display:flex; flex-wrap:wrap; align-content:flex-start; gap:0.6rem; }
+  .explorer-empty{ padding:2rem; color:var(--ink-soft); font-size:0.9rem; text-align:center; width:100%; }
+  .fs-tile{ width:6rem; display:flex; flex-direction:column; align-items:center; gap:0.35rem; padding:0.6rem 0.3rem; border-radius: var(--radius); border:1px solid transparent; text-align:center; }
+  .fs-tile:hover{ background:var(--line-soft); }
+  .fs-tile.selected{ background:var(--action-pale); border-color:var(--action); }
+  .fs-tile i{ font-size:2rem; color:var(--ink-soft); }
+  .fs-tile.folder i{ color:#F5B84B; }
+  .fs-tile[data-ext="pdf"] i{ color:#DC2626; }
+  .fs-tile[data-ext="docx"] i{ color:var(--action-hover); }
+  .fs-tile[data-ext="png"] i, .fs-tile[data-ext="jpg"] i{ color:#16A34A; }
+  .fs-tile[data-ext="mp3"] i{ color:#7C3AED; }
+  .fs-tile .name{ font-size:0.78rem; line-height:1.25; word-break:break-word; color:var(--ink); }
+  .explorer-sidebar .nav-item{ font-size:0.86rem; }
+
+  @media (max-width: 46rem){
+    .app-shell{flex-direction:column;}
+    .sidebar{width:100%;flex-direction:row;align-items:center;gap:0.7rem;padding:0.7rem 0.85rem;overflow-x:auto;overflow-y:hidden;border-right:none;border-bottom:1px solid var(--line);}
+    .sidebar h2.app-title{margin:0;white-space:nowrap;}
+    .compose-btn{margin-bottom:0;padding:0.6rem 0.9rem;white-space:nowrap;}
+    .nav-item{white-space:nowrap;margin-bottom:0;}
+    .sidebar-foot{display:none;}
+    .main{padding:1rem;}
+    .field-two{grid-template-columns:1fr;}
+    .instruction-float{margin:0.9rem;}
+    .explorer-body{flex-direction:column;}
+    .explorer-sidebar{width:100%;display:flex;flex-direction:row;overflow-x:auto;overflow-y:hidden;gap:0.4rem;}
+  }
+
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><i class="fa-solid fa-envelope-open-text"></i><span>eSCIENCES — Simulateur de Messagerie</span></div>
+  <div><span class="level-badge" id="level-badge" style="display:none;"></span></div>
+</header>
+
+<main>
+
+<!-- ============ ÉTAPE 0 : SÉLECTION DU NIVEAU ============ -->
+<section class="screen active" id="screen-level">
+  <div class="card">
+    <p class="eyebrow">Bienvenue</p>
+    <h1 class="title">eSCIENCES - Simulateur de Messagerie</h1>
+    <p class="subtitle">Choisis ton niveau scolaire pour commencer l'exercice.</p>
+    <div class="level-select">
+      <button type="button" class="level-card" data-level="primaire">
+        <i class="fa-solid fa-child"></i>
+        <span><span class="t">Niveau 1 : Primaire (P5 - P6)</span><br><span class="s">Exercice simplifié</span></span>
+      </button>
+      <button type="button" class="level-card" data-level="secondaire">
+        <i class="fa-solid fa-user-graduate"></i>
+        <span><span class="t">Niveau 2 : Secondaire (S1 - S3)</span><br><span class="s">Exercice complet et exigeant</span></span>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ÉTAPE 1 : CRÉATION DE COMPTE ============ -->
+<section class="screen" id="screen-signup">
+  <div class="card">
+    <p class="eyebrow">Étape 1 sur 4</p>
+    <h1 class="title">Création de ma première adresse e-mail</h1>
+    <p class="subtitle">Remplis le formulaire pour créer ton adresse mail d'entrainement.</p>
+
+    <form id="form-signup" novalidate>
+      <label class="first" for="su-nom">Nom</label>
+      <input type="text" id="su-nom">
+
+      <label for="su-prenom">Prénom</label>
+      <input type="text" id="su-prenom">
+
+      <label for="su-local">Adresse mail</label>
+      <div class="email-group" id="email-group">
+        <input type="text" id="su-local" placeholder="prenom.nom" autocomplete="off">
+        <span class="suffix">@esciences.be</span>
+      </div>
+      <div class="tip-bubble" id="tip-local">
+        <div class="tip-icon"><i class="fa-solid fa-lightbulb"></i></div>
+        <div class="tip-text"></div>
+      </div>
+
+      <label for="su-pass">Mot de passe</label>
+      <div class="password-group">
+        <input type="password" id="su-pass" autocomplete="new-password">
+        <button type="button" class="eye-btn" data-target="su-pass" aria-label="Afficher le mot de passe">
+          <i class="fa-solid fa-eye icon-show"></i><i class="fa-solid fa-eye-slash icon-hide"></i>
+        </button>
+      </div>
+      <div class="field-hint" id="pass-hint">Il doit contenir au moins 8 caractères, une majuscule et un chiffre.</div>
+      <div class="tip-bubble" id="tip-pass">
+        <div class="tip-icon"><i class="fa-solid fa-lightbulb"></i></div>
+        <div class="tip-text"></div>
+      </div>
+
+      <label for="su-pass2">Répéter le mot de passe</label>
+      <div class="password-group">
+        <input type="password" id="su-pass2" autocomplete="new-password">
+        <button type="button" class="eye-btn" data-target="su-pass2" aria-label="Afficher le mot de passe">
+          <i class="fa-solid fa-eye icon-show"></i><i class="fa-solid fa-eye-slash icon-hide"></i>
+        </button>
+      </div>
+      <div class="tip-bubble" id="tip-pass2">
+        <div class="tip-icon"><i class="fa-solid fa-lightbulb"></i></div>
+        <div class="tip-text"></div>
+      </div>
+
+      <button type="submit" class="btn"><i class="fa-solid fa-user-plus"></i> Créer</button>
+    </form>
+  </div>
+</section>
+
+<!-- ============ ÉTAPE 2a : CONFIRMATION ============ -->
+<section class="screen" id="screen-confirm">
+  <div class="card">
+    <div class="confirm-mark"><i class="fa-solid fa-check"></i></div>
+    <h1 class="title text-center">Ton compte est créé !</h1>
+    <p class="subtitle text-center">Voici ta nouvelle adresse mail d'entrainement.</p>
+    <div class="text-center"><div class="email-pill" id="confirm-email"></div></div>
+
+    <div class="info-box">
+      <div class="info-icon"><i class="fa-solid fa-circle-info"></i></div>
+      <div><b>Ceci est un simulateur</b>Cette boite mail est fictive : elle sert uniquement à s'entrainer. Elle n'existe pas vraiment sur Internet et personne ne peut t'écrire ici.</div>
+    </div>
+    <div class="info-box warn">
+      <div class="info-icon"><i class="fa-solid fa-pen"></i></div>
+      <div><b>À faire tout de suite</b>Note ton adresse et ton mot de passe sur une feuille secrète, avant de continuer.</div>
+    </div>
+
+    <button class="btn" id="btn-go-login"><i class="fa-solid fa-right-to-bracket"></i> Se connecter</button>
+  </div>
+</section>
+
+<!-- ============ ÉTAPE 2b : CONNEXION ============ -->
+<section class="screen" id="screen-login">
+  <div class="card">
+    <p class="eyebrow">Étape 2 sur 4</p>
+    <h1 class="title">Connexion</h1>
+    <p class="subtitle">Entre ton adresse mail complète et ton mot de passe.</p>
+
+    <form id="form-login" novalidate>
+      <label class="first" for="li-email">Adresse mail complète</label>
+      <input type="text" id="li-email" placeholder="prenom.nom@esciences.be" autocomplete="off">
+
+      <label for="li-pass">Mot de passe</label>
+      <div class="password-group">
+        <input type="password" id="li-pass" autocomplete="off">
+        <button type="button" class="eye-btn" data-target="li-pass" aria-label="Afficher le mot de passe">
+          <i class="fa-solid fa-eye icon-show"></i><i class="fa-solid fa-eye-slash icon-hide"></i>
+        </button>
+      </div>
+
+      <div class="tip-bubble" id="tip-login">
+        <div class="tip-icon"><i class="fa-solid fa-lightbulb"></i></div>
+        <div class="tip-text"></div>
+      </div>
+
+      <button type="submit" class="btn"><i class="fa-solid fa-right-to-bracket"></i> Se connecter</button>
+    </form>
+    <button type="button" class="btn ghost" id="btn-forgot">Mot de passe oublié ?</button>
+    <div class="recall-box" id="recall-box">
+      <div class="line"><i class="fa-solid fa-envelope"></i> Ton adresse : <strong id="recall-email"></strong></div>
+      <div class="line"><i class="fa-solid fa-key"></i> Ton mot de passe : <strong id="recall-pass"></strong></div>
+      <div class="warn-line"><i class="fa-solid fa-triangle-exclamation"></i> Ces informations sont secrètes : ne les donne à personne, à part tes parents ou ton enseignant·e.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ÉTAPE 3 : APPLICATION MAIL ============ -->
+<section class="screen app-screen" id="screen-app">
+  <div class="app-shell">
+    <aside class="sidebar">
+      <h2 class="app-title"><i class="fa-solid fa-envelope-open-text"></i> MyMail</h2>
+      <button class="compose-btn" id="btn-compose"><i class="fa-solid fa-pen"></i> Nouveau</button>
+      <button class="nav-item active" id="nav-inbox" data-target="inbox"><i class="fa-solid fa-inbox"></i> Boite de réception <span class="count" id="count-inbox"></span></button>
+      <button class="nav-item" id="nav-sent" data-target="sent"><i class="fa-solid fa-paper-plane"></i> Boite d'envoi</button>
+      <button class="nav-item" id="nav-drafts" data-target="drafts"><i class="fa-solid fa-file-pen"></i> Brouillons</button>
+      <button class="nav-item" id="nav-spam" data-target="spam"><i class="fa-solid fa-shield-halved"></i> Spam</button>
+      <button class="nav-item" id="nav-trash" data-target="trash"><i class="fa-solid fa-trash"></i> Corbeille</button>
+      <div class="sidebar-foot">
+        <div class="addr" id="side-email"></div>
+        <button class="logout-link" id="btn-logout"><i class="fa-solid fa-arrow-right-from-bracket"></i> Se déconnecter</button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <div id="view-inbox" style="display:flex;flex-direction:column;min-height:0;flex:1;">
+        <div class="main-header"><div><h2><i class="fa-solid fa-inbox"></i> Boite de réception</h2><p>Les messages que tu reçois s'affichent ici.</p></div></div>
+        <div class="list-scroll" id="list-inbox"></div>
+      </div>
+
+      <div id="view-sent" style="display:none;flex-direction:column;min-height:0;flex:1;">
+        <div class="main-header"><div><h2><i class="fa-solid fa-paper-plane"></i> Boite d'envoi</h2><p>Les messages que tu as envoyés s'affichent ici.</p></div></div>
+        <div class="list-scroll" id="list-sent"></div>
+      </div>
+
+      <div id="view-drafts" style="display:none;flex-direction:column;min-height:0;flex:1;">
+        <div class="main-header"><div><h2><i class="fa-solid fa-file-pen"></i> Brouillons</h2><p>Les messages non terminés seraient ici.</p></div></div>
+        <div class="empty-state"><i class="fa-solid fa-file-pen"></i><b>Aucun brouillon.</b><br>Tu n'as pas encore commencé de message sans l'envoyer.</div>
+      </div>
+
+      <div id="view-spam" style="display:none;flex-direction:column;min-height:0;flex:1;">
+        <div class="main-header"><div><h2><i class="fa-solid fa-shield-halved"></i> Spam</h2><p>Les messages indésirables s'affichent ici.</p></div></div>
+        <div class="list-scroll" id="list-spam"></div>
+      </div>
+
+      <div id="view-trash" style="display:none;flex-direction:column;min-height:0;flex:1;">
+        <div class="main-header"><div><h2><i class="fa-solid fa-trash"></i> Corbeille</h2><p>Les messages supprimés s'affichent ici.</p></div></div>
+        <div class="list-scroll" id="list-trash"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ============ MODALE : INTERCEPTION AVANT CONNEXION ============ -->
+<div class="overlay" id="overlay-intercept">
+  <div class="modal">
+    <div class="intercept-icon"><i class="fa-solid fa-file-signature"></i></div>
+    <h3 class="text-center" style="margin:0 0 0.5rem;font-size:1.08rem;">As-tu bien noté tes identifiants sur une feuille secrète ?</h3>
+    <p class="subtitle text-center" style="margin-bottom:0;">Sans cette feuille, tu risques de ne plus pouvoir te connecter la prochaine fois.</p>
+    <div class="intercept-actions">
+      <button class="btn secondary" id="btn-intercept-no">Non, je le fais</button>
+      <button class="btn" id="btn-intercept-yes">Oui, c'est fait !</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODALE : RÉDACTION ============ -->
+<div class="overlay" id="overlay-compose">
+  <div class="modal wide" style="max-height:94vh;">
+    <div class="modal-head">
+      <h3><i class="fa-solid fa-pen"></i> Nouveau message</h3>
+      <button class="close-x" id="btn-close-compose"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <div class="instruction-float">
+      <i class="fa-solid fa-thumbtack"></i>
+      <div><b>Consigne</b><span id="compose-instruction"></span></div>
+    </div>
+
+    <div class="modal-body">
+      <form id="form-compose" novalidate onsubmit="return false;">
+        <div class="field-label-row">
+          <label>Expéditeur</label>
+          <span class="help" tabindex="0"><i class="fa-solid fa-question"></i><span class="tip">L'expéditeur, c'est toi : la personne qui envoie le message.</span></span>
+        </div>
+        <input type="text" id="cp-from" disabled>
+
+        <div class="field-label-row">
+          <label>Destinataire</label>
+          <span class="help" tabindex="0"><i class="fa-solid fa-question"></i><span class="tip">Le destinataire reçoit le message directement. C'est la personne à qui tu écris.</span></span>
+        </div>
+        <input type="text" id="cp-to" placeholder="ex : m.dupont@esciences.be" autocomplete="off">
+
+        <div class="field-two" id="cc-cci-row">
+          <div>
+            <div class="field-label-row">
+              <label>Cc</label>
+              <span class="help" tabindex="0"><i class="fa-solid fa-question"></i><span class="tip">Cc veut dire « copie carbone ». Les personnes en Cc reçoivent aussi le message, et tout le monde peut voir leur adresse.</span></span>
+            </div>
+            <input type="text" id="cp-cc" placeholder="facultatif" autocomplete="off">
+          </div>
+          <div>
+            <div class="field-label-row">
+              <label>Cci</label>
+              <span class="help" tabindex="0"><i class="fa-solid fa-question"></i><span class="tip">Cci veut dire « copie carbone invisible ». Ces personnes reçoivent le message, mais leur adresse reste cachée pour les autres.</span></span>
+            </div>
+            <input type="text" id="cp-cci" placeholder="facultatif" autocomplete="off">
+          </div>
+        </div>
+
+        <div class="field-label-row">
+          <label>Objet</label>
+          <span class="help" tabindex="0"><i class="fa-solid fa-question"></i><span class="tip">L'objet résume le sujet du message en quelques mots seulement.</span></span>
+        </div>
+        <input type="text" id="cp-subject" placeholder="ex : Devoir de mathématiques" autocomplete="off">
+
+        <div class="attach-row">
+          <button type="button" class="attach-btn" id="btn-attach"><i class="fa-solid fa-paperclip"></i> <span id="attach-btn-label">Pièce jointe</span></button>
+          <span class="help" tabindex="0"><i class="fa-solid fa-question"></i><span class="tip">Une pièce jointe est un fichier (photo, document...) ajouté au message.</span></span>
+          <div class="attach-chip" id="attach-chip">
+            <i class="fa-solid file-icon" id="attach-chip-icon"></i>
+            <span id="attach-chip-name"></span>
+            <button type="button" class="remove-attach" id="btn-remove-attach" aria-label="Retirer la pièce jointe"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+        </div>
+
+        <div class="field-label-row">
+          <label>Corps du message</label>
+          <span class="help" tabindex="0"><i class="fa-solid fa-question"></i><span class="tip">Le corps du message est le texte principal : c'est ici que tu écris ce que tu as à dire.</span></span>
+        </div>
+        <div class="editor-toolbar">
+          <button type="button" class="ed-btn" data-cmd="bold" title="Gras"><i class="fa-solid fa-bold"></i></button>
+          <button type="button" class="ed-btn" data-cmd="italic" title="Italique"><i class="fa-solid fa-italic"></i></button>
+          <button type="button" class="ed-btn" data-cmd="underline" title="Souligné"><i class="fa-solid fa-underline"></i></button>
+        </div>
+        <div class="editable-body" id="cp-body" contenteditable="true" data-placeholder="Écris ton message ici..."></div>
+      </form>
+    </div>
+    <div class="modal-foot">
+      <button class="btn secondary small" id="btn-cancel-compose">Annuler</button>
+      <button class="btn small" id="btn-send"><i class="fa-solid fa-paper-plane"></i> Envoyer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODALE : EXPLORATEUR DE FICHIERS (trompe-l'œil) ============ -->
+<div class="overlay overlay-top" id="overlay-explorer">
+  <div class="modal xwide" style="max-height:86vh;">
+    <div class="modal-head">
+      <h3><i class="fa-solid fa-folder-open"></i> Explorateur de fichiers</h3>
+      <button class="close-x" id="btn-close-explorer"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="explorer-body">
+      <aside class="explorer-sidebar">
+        <button class="nav-item" data-shortcut="Ce PC"><i class="fa-solid fa-desktop"></i> Ce PC</button>
+        <button class="nav-item" data-shortcut="Documents"><i class="fa-solid fa-folder"></i> Documents</button>
+        <button class="nav-item" data-shortcut="Téléchargements"><i class="fa-solid fa-download"></i> Téléchargements</button>
+        <button class="nav-item" data-shortcut="Images"><i class="fa-solid fa-image"></i> Images</button>
+      </aside>
+      <div class="explorer-main">
+        <div class="breadcrumb" id="explorer-breadcrumb"></div>
+        <div class="explorer-grid" id="explorer-grid"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn secondary small" id="btn-cancel-explorer">Annuler</button>
+      <button class="btn small" id="btn-confirm-explorer" disabled><i class="fa-solid fa-paperclip"></i> Ouvrir / Joindre</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODALE : LECTURE D'UN MESSAGE ============ -->
+<div class="overlay" id="overlay-read">
+  <div class="modal wide">
+    <div class="modal-head">
+      <h3 id="read-subject"></h3>
+      <button class="close-x" id="btn-close-read"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="detail-meta">
+        <div class="row"><span class="k">De :</span><span id="read-from"></span></div>
+        <div class="row"><span class="k">À :</span><span id="read-to"></span></div>
+        <div class="row"><span class="k">Date :</span><span id="read-date"></span></div>
+      </div>
+      <div class="detail-body" id="read-body"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn small secondary" id="btn-close-read2">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODALE : RAPPORT D'ANALYSE ============ -->
+<div class="overlay" id="overlay-report">
+  <div class="modal wide">
+    <div class="modal-head">
+      <h3><i class="fa-solid fa-clipboard-check"></i> Rapport de ton courriel</h3>
+      <button class="close-x" id="btn-close-report"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="report-summary">
+        <div class="score" id="report-score"></div>
+        <div class="msg" id="report-message"></div>
+      </div>
+      <div id="report-items"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn small" id="btn-back-inbox">Retour à la boite de réception</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------------------------------------------------------------
+  // Configuration par niveau scolaire — toute la logique qui varie
+  // selon le niveau se lit ici, à un seul endroit.
+  // ---------------------------------------------------------------
+  var LEVELS = {
+    primaire: {
+      label: "Primaire (P5 - P6)",
+      passHint: "Il doit contenir au moins 6 caractères.",
+      minPasswordLength: 6,
+      requireUppercase: false,
+      requireDigit: false,
+      showCcCci: false,
+      strictAttachmentExt: false,
+      composeInstruction: "Rédige un courriel pour rendre ton devoir de mathématiques. Trouve-le dans tes documents et ajoute-le en pièce jointe."
+    },
+    secondaire: {
+      label: "Secondaire (S1 - S3)",
+      passHint: "Il doit contenir au moins 8 caractères, une majuscule et un chiffre.",
+      minPasswordLength: 8,
+      requireUppercase: true,
+      requireDigit: true,
+      showCcCci: true,
+      strictAttachmentExt: true,
+      composeInstruction: "Rédige un courriel formel pour rendre ton devoir de mathématiques (au format PDF uniquement). Trouve-le dans ton dossier 2026."
+    }
+  };
+  var level = null; // "primaire" | "secondaire"
+  function cfg(){ return LEVELS[level]; }
+
+  var account = null;
+  var sentMessages = [];
+  var unreadInboxCount = 0;
+  var attachedFile = null; // { name: "Devoir_Maths.pdf" }
+
+  function $(id){ return document.getElementById(id); }
+  function escapeHtml(str){ return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+  function refreshIcons(){ if(window.FontAwesome && FontAwesome.dom) FontAwesome.dom.i2svg(); }
+
+  function showScreen(id){
+    document.querySelectorAll(".screen").forEach(function(s){ s.classList.remove("active"); });
+    $(id).classList.add("active");
+  }
+
+  // ---------------------------------------------------------------
+  // ÉTAPE 0 : Sélection du niveau
+  // ---------------------------------------------------------------
+  document.querySelectorAll(".level-card").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      level = btn.getAttribute("data-level");
+      var badge = $("level-badge");
+      badge.textContent = cfg().label;
+      badge.style.display = "inline-block";
+      $("pass-hint").textContent = cfg().passHint;
+      $("cc-cci-row").style.display = cfg().showCcCci ? "grid" : "none";
+      showScreen("screen-signup");
+    });
+  });
+
+  // ---------------------------------------------------------------
+  // Afficher / masquer les mots de passe
+  // ---------------------------------------------------------------
+  document.querySelectorAll(".eye-btn").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var input = $(btn.getAttribute("data-target"));
+      var willShow = input.type === "password";
+      input.type = willShow ? "text" : "password";
+      btn.classList.toggle("revealed", willShow);
+      btn.setAttribute("aria-label", willShow ? "Masquer le mot de passe" : "Afficher le mot de passe");
+    });
+  });
+
+  // ---------------------------------------------------------------
+  // ÉTAPE 1 : Création du compte (validation au clic uniquement)
+  // ---------------------------------------------------------------
+  var localInput = $("su-local");
+  var passInput  = $("su-pass");
+  var pass2Input = $("su-pass2");
+  var emailGroup = $("email-group");
+  var LOCAL_RE = /^[A-Za-z0-9._-]+$/;
+
+  function showTip(bubbleId, field, message){
+    var bubble = $(bubbleId);
+    bubble.querySelector(".tip-text").innerHTML = message;
+    bubble.classList.add("show");
+    if(field) field.classList.add("invalid");
+  }
+  function hideTip(bubbleId, field){
+    $(bubbleId).classList.remove("show");
+    if(field) { field.classList.remove("invalid"); field.classList.add("valid"); }
+  }
+
+  function checkLocal(){
+    var val = localInput.value.trim();
+    if(val === ""){
+      showTip("tip-local", emailGroup, "<b>Un petit oubli</b>Le champ adresse mail est vide. Choisis une partie de nom, par exemple : prenom.nom");
+      return false;
+    }
+    if(!LOCAL_RE.test(val)){
+      showTip("tip-local", emailGroup,
+        "<b>Presque !</b>Une adresse mail ne peut pas contenir d'accents, d'espaces ou de caractères spéciaux (é, à, %, !...). " +
+        "Utilise uniquement des lettres sans accent, des chiffres, des points ( . ) ou des tirets ( - _ ). Par exemple : prenom.nom");
+      return false;
+    }
+    hideTip("tip-local", emailGroup);
+    return true;
+  }
+
+  function checkPass(){
+    var val = passInput.value;
+    var c = cfg();
+    if(val === ""){
+      showTip("tip-pass", passInput, "<b>Un petit oubli</b>Le champ mot de passe est vide.");
+      return false;
+    }
+    var missing = [];
+    if(val.length < c.minPasswordLength) missing.push("au moins " + c.minPasswordLength + " caractères");
+    if(c.requireUppercase && !/[A-Z]/.test(val)) missing.push("une majuscule");
+    if(c.requireDigit && !/[0-9]/.test(val)) missing.push("un chiffre");
+    if(missing.length > 0){
+      showTip("tip-pass", passInput,
+        "<b>Ton mot de passe a besoin d'un peu plus de force</b>Ajoute " + missing.join(", ") + ". Par exemple : " + (c.requireUppercase ? "Robot42fusee" : "chatbleu12"));
+      return false;
+    }
+    hideTip("tip-pass", passInput);
+    return true;
+  }
+
+  function checkPass2(){
+    var val = pass2Input.value;
+    if(val === ""){
+      showTip("tip-pass2", pass2Input, "<b>Un petit oubli</b>Répète ton mot de passe dans ce champ.");
+      return false;
+    }
+    if(val !== passInput.value){
+      showTip("tip-pass2", pass2Input, "<b>Ça ne correspond pas encore</b>Les deux mots de passe sont différents. Vérifie que tu as tapé exactement la même chose dans les deux champs.");
+      return false;
+    }
+    hideTip("tip-pass2", pass2Input);
+    return true;
+  }
+
+  $("form-signup").addEventListener("submit", function(e){
+    e.preventDefault();
+    var okLocal = checkLocal();
+    var okPass = checkPass();
+    var okPass2 = checkPass2();
+    var nom = $("su-nom").value.trim();
+    var prenom = $("su-prenom").value.trim();
+
+    if(!okLocal || !okPass || !okPass2 || nom === "" || prenom === ""){
+      var firstInvalid = document.querySelector(".tip-bubble.show");
+      if(firstInvalid) firstInvalid.scrollIntoView({behavior:"smooth", block:"center"});
+      return;
+    }
+
+    var local = localInput.value.trim().toLowerCase();
+    account = {
+      nom: nom,
+      prenom: prenom,
+      local: local,
+      email: local + "@esciences.be",
+      password: passInput.value
+    };
+
+    $("confirm-email").textContent = account.email;
+    showScreen("screen-confirm");
+  });
+
+  // ---------------------------------------------------------------
+  // ÉTAPE 2 : Interception + connexion
+  // ---------------------------------------------------------------
+  $("btn-go-login").addEventListener("click", function(){
+    $("overlay-intercept").classList.add("show");
+  });
+  $("btn-intercept-no").addEventListener("click", function(){
+    $("overlay-intercept").classList.remove("show");
+  });
+  $("btn-intercept-yes").addEventListener("click", function(){
+    $("overlay-intercept").classList.remove("show");
+    $("li-email").value = "";
+    $("li-pass").value = "";
+    hideTip("tip-login", null);
+    $("recall-box").classList.remove("show");
+    showScreen("screen-login");
+  });
+
+  $("form-login").addEventListener("submit", function(e){
+    e.preventDefault();
+    var email = $("li-email").value.trim().toLowerCase();
+    var pass = $("li-pass").value;
+
+    if(account && email === account.email && pass === account.password){
+      hideTip("tip-login", null);
+      $("tip-login").classList.remove("show");
+      enterApp();
+    } else {
+      showTip("tip-login", null, "<b>Ça ne correspond pas</b>Vérifie ton adresse complète (avec @esciences.be) et ton mot de passe, en respectant les majuscules.");
+    }
+  });
+
+  $("btn-forgot").addEventListener("click", function(){
+    if(!account) return;
+    $("recall-email").textContent = account.email;
+    $("recall-pass").textContent = account.password;
+    $("recall-box").classList.add("show");
+  });
+
+  $("btn-logout").addEventListener("click", function(){
+    showScreen("screen-login");
+    $("li-email").value = "";
+    $("li-pass").value = "";
+  });
+
+  // ---------------------------------------------------------------
+  // ÉTAPE 3 : Boite mail — données pré-remplies
+  // ---------------------------------------------------------------
+  var inboxMessages = [
+    {
+      id:"in1", unread:true,
+      from:"Mme Lefèvre — Professeure de français", fromEmail:"lefevre.francais@esciences.be",
+      subject:"Devoir de français",
+      preview:"N'oublie pas ton devoir pour vendredi !",
+      body:"Bonjour,\n\nN'oublie pas ton devoir de lecture pour vendredi ! Merci de terminer le chapitre 4 et de préparer trois questions sur le texte.\n\nBonne lecture,\nMme Lefèvre",
+      date:"Hier, 16:42"
+    },
+    {
+      id:"in2", unread:true,
+      from:"M. Rasquin — Professeur de sciences", fromEmail:"rasquin.sciences@esciences.be",
+      subject:"Vidéo de sciences à regarder",
+      preview:"Voici l'épisode de C'est pas sorcier à regarder pour le labo : https://youtube.com/...",
+      body:"Bonjour,\n\nVoici le lien vers l'épisode de C'est pas sorcier à regarder pour le labo : https://youtube.com/exemple-labo\n\nRegarde-le avant le cours.\n\nÀ demain,\nM. Rasquin",
+      date:"Lundi, 09:15"
+    }
+  ];
+
+  var spamMessages = [
+    {
+      id:"sp1",
+      from:"Offres Exclusives", fromEmail:"promo@offres-cadeaux-club.info",
+      subject:"GAGNE un smartphone !",
+      preview:"Félicitations ! Ton adresse a été tirée au sort. Clique vite pour réclamer ton cadeau...",
+      body:"Félicitations !\n\nTon adresse e-mail a été tirée au sort parmi des milliers de participants. Clique vite pour réclamer ton smartphone gratuit avant qu'il n'expire dans 24 heures !\n\nOffre limitée, ne rate pas cette chance unique.",
+      date:"09:14"
+    },
+    {
+      id:"sp2",
+      from:"Support Sécurité", fromEmail:"securite@compte-verification-alert.net",
+      subject:"Alerte de sécurité",
+      preview:"Nous avons détecté une activité suspecte. Clique sur ce lien dans les 24h pour vérifier ton compte...",
+      body:"ALERTE SÉCURITÉ\n\nNous avons détecté une activité suspecte sur ton compte. Clique sur ce lien dans les 24 heures pour le vérifier, sinon il sera bloqué définitivement.",
+      date:"08:02"
+    }
+  ];
+
+  var trashMessages = [
+    {
+      id:"tr1",
+      from:"MyMail", fromEmail:"bienvenue@esciences.be",
+      subject:"Bienvenue",
+      preview:"Merci d'avoir créé ton compte d'entrainement !",
+      body:"Bonjour,\n\nMerci d'avoir créé ton compte d'entrainement MyMail ! Tu peux maintenant apprendre à écrire de vrais courriels, en toute sécurité.\n\nBonne découverte,\nL'équipe MyMail",
+      date:"01/09"
+    }
+  ];
+
+  function updateInboxCount(){
+    unreadInboxCount = inboxMessages.filter(function(m){ return m.unread; }).length;
+    var badge = $("count-inbox");
+    badge.textContent = unreadInboxCount > 0 ? String(unreadInboxCount) : "";
+    badge.style.display = unreadInboxCount > 0 ? "inline-block" : "none";
+  }
+
+  function enterApp(){
+    $("side-email").textContent = account.email;
+    $("cp-from").value = account.email;
+    switchView("inbox");
+    renderAllLists();
+    updateInboxCount();
+    showScreen("screen-app");
+  }
+
+  var views = ["inbox","sent","drafts","spam","trash"];
+  function switchView(target){
+    views.forEach(function(v){
+      $("nav-" + v).classList.toggle("active", v === target);
+      var el = $("view-" + v);
+      el.style.display = v === target ? "flex" : "none";
+    });
+  }
+  views.forEach(function(v){
+    $("nav-" + v).addEventListener("click", function(){ switchView(v); });
+  });
+
+  function emptyStateHtml(icon, title, text){
+    return '<div class="empty-state"><i class="fa-solid ' + icon + '"></i><b>' + title + '</b><br>' + text + '</div>';
+  }
+
+  function renderMailList(containerId, messages, opts){
+    var el = $(containerId);
+    if(messages.length === 0){
+      el.innerHTML = opts.emptyHtml;
+      return;
+    }
+    var html = '<div class="mail-list">';
+    messages.slice().reverse().forEach(function(m){
+      var readClass = m.unread ? "unread" : "read";
+      html += '<div class="mail-row ' + readClass + '" data-id="' + m.id + '" data-source="' + opts.source + '">';
+      html += '<div class="dot"></div>';
+      html += '<div class="body">';
+      html += '<div class="row1"><span class="from">' + escapeHtml(m.from || m.to || "") + '</span><span class="date">' + escapeHtml(m.date) + '</span></div>';
+      html += '<div class="subject">' + escapeHtml(m.subject || "(sans objet)") + '</div>';
+      html += '<div class="preview">' + escapeHtml(m.preview || (m.body || "").slice(0,110)) + '</div>';
+      if(opts.source === "spam"){
+        html += '<div class="spam-flag"><i class="fa-solid fa-triangle-exclamation"></i> Message suspect</div>';
+      }
+      html += '</div></div>';
+    });
+    html += '</div>';
+    el.innerHTML = html;
+    refreshIcons();
+  }
+
+  function renderAllLists(){
+    renderMailList("list-inbox", inboxMessages, { source:"inbox", emptyHtml: emptyStateHtml("fa-inbox","Ta boite de réception est vide.","Pour l'instant, personne ne t'a écrit.") });
+    renderMailList("list-sent", sentMessages, { source:"sent", emptyHtml: emptyStateHtml("fa-paper-plane","Aucun message envoyé pour l'instant.","Clique sur « Nouveau » pour rédiger ton premier courriel.") });
+    renderMailList("list-spam", spamMessages, { source:"spam", emptyHtml: emptyStateHtml("fa-shield-halved","Aucun spam.","Ce dossier accueille les messages suspects ou publicitaires.") });
+    renderMailList("list-trash", trashMessages, { source:"trash", emptyHtml: emptyStateHtml("fa-trash","La corbeille est vide.","Les messages supprimés arriveraient ici.") });
+  }
+
+  document.addEventListener("click", function(e){
+    var row = e.target.closest(".mail-row");
+    if(!row) return;
+    var source = row.getAttribute("data-source");
+    var id = row.getAttribute("data-id");
+    var list = source === "inbox" ? inboxMessages : source === "sent" ? sentMessages : source === "spam" ? spamMessages : trashMessages;
+    var msg = list.filter(function(m){ return m.id === id; })[0];
+    if(!msg) return;
+    if(msg.unread){ msg.unread = false; renderAllLists(); updateInboxCount(); }
+    openReadModal(msg, source);
+  });
+
+  function openReadModal(msg, source){
+    $("read-subject").textContent = msg.subject || "(sans objet)";
+    $("read-from").textContent = msg.from || account.email;
+    $("read-to").textContent = source === "sent" ? (msg.to || "") : account.email;
+    $("read-date").textContent = msg.date || "";
+    var bodyEl = $("read-body");
+    if(source === "sent" && msg.bodyHtml){
+      bodyEl.innerHTML = msg.bodyHtml;
+    } else {
+      bodyEl.textContent = msg.body || "";
+    }
+    $("overlay-read").classList.add("show");
+  }
+  $("btn-close-read").addEventListener("click", function(){ $("overlay-read").classList.remove("show"); });
+  $("btn-close-read2").addEventListener("click", function(){ $("overlay-read").classList.remove("show"); });
+
+  // ---------------------------------------------------------------
+  // Simulateur d'explorateur de fichiers (trompe-l'œil)
+  // ---------------------------------------------------------------
+  var FS_ROOT = {
+    name: "Ce PC", type:"folder",
+    children: [
+      { name:"Documents", type:"folder", children:[
+          { name:"Cours_Francais.docx", type:"file" },
+          { name:"Image_Science.png", type:"file" },
+          { name:"Mathématiques_2026", type:"folder", children:[
+              { name:"Devoir_Maths.docx", type:"file" },
+              { name:"Devoir_Maths.pdf", type:"file" }
+          ]}
+      ]},
+      { name:"Téléchargements", type:"folder", children:[
+          { name:"Notice_Appareil.pdf", type:"file" },
+          { name:"Musique_Cours.mp3", type:"file" }
+      ]},
+      { name:"Images", type:"folder", children:[
+          { name:"Vacances.jpg", type:"file" },
+          { name:"Chat.png", type:"file" }
+      ]}
+    ]
+  };
+  var explorerPath = [FS_ROOT];
+  var explorerSelected = null;
+
+  function fileExt(name){ var m = name.match(/\.([^.]+)$/); return m ? m[1].toLowerCase() : ""; }
+  function fileIconClass(name){
+    var ext = fileExt(name);
+    if(ext === "pdf") return "fa-file-pdf";
+    if(ext === "docx" || ext === "doc") return "fa-file-word";
+    if(ext === "png" || ext === "jpg" || ext === "jpeg") return "fa-file-image";
+    if(ext === "mp3") return "fa-file-audio";
+    return "fa-file";
+  }
+
+  function renderExplorer(){
+    var current = explorerPath[explorerPath.length - 1];
+
+    var crumbHtml = "";
+    explorerPath.forEach(function(node, i){
+      if(i > 0) crumbHtml += '<i class="fa-solid fa-chevron-right"></i>';
+      crumbHtml += '<button type="button" class="crumb" data-i="' + i + '">' + escapeHtml(node.name) + '</button>';
+    });
+    $("explorer-breadcrumb").innerHTML = crumbHtml;
+
+    var grid = $("explorer-grid");
+    if(!current.children || current.children.length === 0){
+      grid.innerHTML = '<div class="explorer-empty">Ce dossier est vide.</div>';
+    } else {
+      var html = "";
+      current.children.forEach(function(node){
+        var isFolder = node.type === "folder";
+        var selected = (!isFolder && explorerSelected === node) ? " selected" : "";
+        var ext = isFolder ? "" : fileExt(node.name);
+        html += '<button type="button" class="fs-tile ' + (isFolder ? "folder" : "file") + selected + '" data-name="' + escapeHtml(node.name) + '" data-ext="' + ext + '">' +
+          '<i class="fa-solid ' + (isFolder ? "fa-folder" : fileIconClass(node.name)) + '"></i>' +
+          '<span class="name">' + escapeHtml(node.name) + '</span>' +
+        '</button>';
+      });
+      grid.innerHTML = html;
+    }
+    $("btn-confirm-explorer").disabled = !explorerSelected;
+    refreshIcons();
+  }
+
+  function explorerFindChild(name){
+    return FS_ROOT.children.filter(function(c){ return c.name === name; })[0];
+  }
+
+  function openExplorer(){
+    explorerPath = [FS_ROOT];
+    explorerSelected = null;
+    renderExplorer();
+    $("overlay-explorer").classList.add("show");
+  }
+  function closeExplorer(){ $("overlay-explorer").classList.remove("show"); }
+
+  $("btn-attach").addEventListener("click", openExplorer);
+  $("btn-close-explorer").addEventListener("click", closeExplorer);
+  $("btn-cancel-explorer").addEventListener("click", closeExplorer);
+
+  document.querySelectorAll(".explorer-sidebar .nav-item").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var name = btn.getAttribute("data-shortcut");
+      explorerSelected = null;
+      explorerPath = (name === "Ce PC") ? [FS_ROOT] : [FS_ROOT, explorerFindChild(name)];
+      renderExplorer();
+    });
+  });
+
+  $("explorer-breadcrumb").addEventListener("click", function(e){
+    var crumb = e.target.closest(".crumb");
+    if(!crumb) return;
+    var i = parseInt(crumb.getAttribute("data-i"), 10);
+    explorerPath = explorerPath.slice(0, i + 1);
+    explorerSelected = null;
+    renderExplorer();
+  });
+
+  $("explorer-grid").addEventListener("click", function(e){
+    var tile = e.target.closest(".fs-tile");
+    if(!tile) return;
+    var current = explorerPath[explorerPath.length - 1];
+    var name = tile.getAttribute("data-name");
+    var node = current.children.filter(function(c){ return c.name === name; })[0];
+    if(!node) return;
+    if(node.type === "folder"){
+      explorerPath.push(node);
+      explorerSelected = null;
+    } else {
+      explorerSelected = node;
+    }
+    renderExplorer();
+  });
+
+  function updateAttachDisplay(){
+    var chip = $("attach-chip");
+    if(attachedFile){
+      chip.classList.add("show");
+      $("attach-chip-icon").className = "fa-solid file-icon " + fileIconClass(attachedFile.name);
+      $("attach-chip-name").textContent = attachedFile.name;
+      $("attach-btn-label").textContent = "Changer le fichier";
+    } else {
+      chip.classList.remove("show");
+      $("attach-btn-label").textContent = "Pièce jointe";
+    }
+    refreshIcons();
+  }
+
+  $("btn-confirm-explorer").addEventListener("click", function(){
+    if(!explorerSelected) return;
+    attachedFile = { name: explorerSelected.name };
+    updateAttachDisplay();
+    closeExplorer();
+  });
+  $("btn-remove-attach").addEventListener("click", function(){
+    attachedFile = null;
+    updateAttachDisplay();
+  });
+
+  // ---------------------------------------------------------------
+  // Modale de rédaction + éditeur enrichi
+  // ---------------------------------------------------------------
+  var cpBody = $("cp-body");
+
+  document.querySelectorAll(".ed-btn").forEach(function(btn){
+    btn.addEventListener("mousedown", function(e){ e.preventDefault(); });
+    btn.addEventListener("click", function(){
+      document.execCommand(btn.getAttribute("data-cmd"), false, null);
+      cpBody.focus();
+    });
+  });
+
+  function openCompose(){
+    $("cp-to").value = "";
+    $("cp-cc").value = "";
+    $("cp-cci").value = "";
+    $("cp-subject").value = "";
+    cpBody.innerHTML = "";
+    attachedFile = null;
+    updateAttachDisplay();
+    $("compose-instruction").textContent = cfg().composeInstruction;
+    $("overlay-compose").classList.add("show");
+  }
+  function closeCompose(){ $("overlay-compose").classList.remove("show"); }
+
+  $("btn-compose").addEventListener("click", openCompose);
+  $("btn-close-compose").addEventListener("click", closeCompose);
+  $("btn-cancel-compose").addEventListener("click", closeCompose);
+
+  document.querySelectorAll(".help").forEach(function(h){
+    h.addEventListener("click", function(e){
+      e.stopPropagation();
+      var wasOpen = h.classList.contains("tap");
+      document.querySelectorAll(".help.tap").forEach(function(o){ o.classList.remove("tap"); });
+      if(!wasOpen) h.classList.add("tap");
+    });
+  });
+  document.addEventListener("click", function(){
+    document.querySelectorAll(".help.tap").forEach(function(o){ o.classList.remove("tap"); });
+  });
+
+  // ---------------------------------------------------------------
+  // ÉTAPE 4 : Envoi + rapport différencié
+  // ---------------------------------------------------------------
+  $("btn-send").addEventListener("click", function(){
+    var to = $("cp-to").value.trim();
+    var subject = $("cp-subject").value.trim();
+    var bodyText = cpBody.innerText;
+    var bodyHtml = cpBody.innerHTML;
+
+    var report = analyzeEmail(to, subject, bodyText);
+
+    sentMessages.push({
+      id:"out" + Date.now(),
+      to: to, subject: subject, body: bodyText, bodyHtml: bodyHtml,
+      attachment: attachedFile ? attachedFile.name : null,
+      preview: bodyText.replace(/\n+/g," ").slice(0,110),
+      date: new Date().toLocaleString("fr-BE", {day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})
+    });
+    renderAllLists();
+
+    closeCompose();
+    renderReport(report);
+    $("overlay-report").classList.add("show");
+  });
+
+  function checkAttachment(){
+    var c = cfg();
+    if(!attachedFile){
+      return {ok:false, title:"Pièce jointe manquante",
+        detail:"Tu n'as joint aucun fichier. Clique sur « Pièce jointe » pour ouvrir l'explorateur et retrouver ton devoir de mathématiques."};
+    }
+    var base = attachedFile.name.replace(/\.[^.]+$/, "");
+    var ext = fileExt(attachedFile.name);
+    if(c.strictAttachmentExt){
+      if(attachedFile.name === "Devoir_Maths.pdf"){
+        return {ok:true, title:"Bonne pièce jointe",
+          detail:"Tu as joint le bon fichier, au format PDF demandé."};
+      } else if(base === "Devoir_Maths"){
+        return {ok:false, title:"Mauvais format de fichier",
+          detail:"Tu as bien trouvé le devoir de mathématiques, mais tu as joint le fichier ." + ext + " au lieu du .pdf demandé. Rouvre l'explorateur et choisis Devoir_Maths.pdf."};
+      } else {
+        return {ok:false, title:"Ce n'est pas le bon fichier",
+          detail:"Le fichier joint (" + attachedFile.name + ") n'est pas ton devoir de mathématiques. Cherche Devoir_Maths.pdf dans le dossier Documents > Mathématiques_2026."};
+      }
+    } else {
+      if(base === "Devoir_Maths"){
+        return {ok:true, title:"Bonne pièce jointe",
+          detail:"Tu as bien joint ton devoir de mathématiques."};
+      } else {
+        return {ok:false, title:"Ce n'est pas le bon fichier",
+          detail:"Le fichier joint (" + attachedFile.name + ") n'est pas ton devoir de mathématiques. Cherche Devoir_Maths dans tes documents."};
+      }
+    }
+  }
+
+  function analyzeEmail(to, subject, body){
+    var items = [];
+
+    var toTrim = to.trim();
+    if(toTrim === ""){
+      items.push({ok:false, title:"Destinataire manquant",
+        detail:"Le champ destinataire est vide. Un message a toujours besoin d'un destinataire pour savoir à qui il est envoyé."});
+    } else if(toTrim.indexOf("@") === -1){
+      items.push({ok:false, title:"Adresse du destinataire à corriger",
+        detail:"L'adresse « " + toTrim + " » ne contient pas de @. Une adresse mail valide ressemble à quelquechose@quelquepart, par exemple : m.dupont@esciences.be"});
+    } else {
+      items.push({ok:true, title:"Adresse du destinataire valide",
+        detail:"L'adresse contient bien un @, elle a la bonne forme."});
+    }
+
+    var subj = subject.trim();
+    if(subj === ""){
+      items.push({ok:false, title:"Objet absent",
+        detail:"Le champ objet est vide. Ajoute quelques mots qui résument le sujet, par exemple : « Devoir de mathématiques »."});
+    } else if(subj.length > 60 || (body.trim().length > 0 && subj.length >= body.trim().length * 0.6)){
+      items.push({ok:false, title:"Objet à raccourcir",
+        detail:"Ton objet est trop long ou reprend tout le message. L'objet doit rester court : c'est un titre, pas un résumé complet."});
+    } else {
+      items.push({ok:true, title:"Objet présent et synthétique",
+        detail:"Ton objet résume bien le sujet en peu de mots."});
+    }
+
+    var bodyLines = body.split("\n").map(function(l){return l.trim();}).filter(function(l){return l !== "";});
+    var firstLine = bodyLines.length > 0 ? bodyLines[0] : "";
+    var formalRe = /^(bonjour|madame|monsieur|cher|ch[eè]re|chers|ch[eè]res|salut|coucou)/i;
+    if(formalRe.test(firstLine)){
+      items.push({ok:true, title:"Formule d'appel présente",
+        detail:"Ton message commence par une formule de politesse. C'est ce qu'il faut faire."});
+    } else {
+      items.push({ok:false, title:"Formule d'appel manquante",
+        detail:"Ton message ne commence pas par une formule de politesse. Ajoute par exemple « Bonjour, » ou « Madame, Monsieur, » au tout début."});
+    }
+
+    var lastLine = bodyLines.length > 0 ? bodyLines[bodyLines.length - 1] : "";
+    var lastLower = lastLine.toLowerCase();
+    var hasSignature = lastLine !== "" && account && (
+      lastLower.indexOf(account.prenom.toLowerCase()) !== -1 ||
+      lastLower.indexOf(account.nom.toLowerCase()) !== -1
+    );
+    if(hasSignature){
+      items.push({ok:true, title:"Signature présente",
+        detail:"Ton message se termine par ton prénom : le destinataire sait qui lui écrit."});
+    } else {
+      items.push({ok:false, title:"Signature manquante",
+        detail:"Ton message ne se termine pas par ton prénom. Termine toujours un courriel en indiquant qui tu es, par exemple : « ... Merci d'avance, " + (account ? account.prenom : "Prénom") + " »."});
+    }
+
+    items.push(checkAttachment());
+
+    return items;
+  }
+
+  function renderReport(items){
+    var okCount = items.filter(function(i){return i.ok;}).length;
+    var total = items.length;
+    $("report-score").textContent = okCount + "/" + total;
+
+    var msg;
+    if(okCount === total){
+      msg = "Bravo, ton courriel respecte toutes les règles d'un message formel !";
+    } else if(okCount >= total/2){
+      msg = "Bon travail ! Il reste quelques points à améliorer ci-dessous.";
+    } else {
+      msg = "Ton courriel a besoin de quelques corrections. Regarde les explications ci-dessous pour progresser.";
+    }
+    $("report-message").textContent = msg;
+
+    var container = $("report-items");
+    container.innerHTML = "";
+    items.forEach(function(item){
+      var div = document.createElement("div");
+      div.className = "report-item " + (item.ok ? "ok" : "improve");
+      div.innerHTML =
+        '<div class="icon"><i class="fa-solid ' + (item.ok ? "fa-circle-check" : "fa-circle-exclamation") + '"></i></div>' +
+        '<div class="content"><b>' + escapeHtml(item.title) + '</b><span>' + escapeHtml(item.detail) + '</span></div>';
+      container.appendChild(div);
+    });
+    refreshIcons();
+  }
+
+  $("btn-close-report").addEventListener("click", function(){
+    $("overlay-report").classList.remove("show");
+  });
+  $("btn-back-inbox").addEventListener("click", function(){
+    $("overlay-report").classList.remove("show");
+    switchView("sent");
+  });
+
+})();
+</script>
+</body>
+</html>
